@@ -9,7 +9,7 @@ all: $(OBJS)
 	$(CC) -g $(OBJS) -o $(OUT) $(LFLAGS)
 
 engine.o: engine.cc
-	$(CC) $(FLAGS) engine.cc
+	$(CC) $(FLAGS) pkg-config nlohmann_json --cflags engine.cc
 
 main.o: main.cc
 	$(CC) $(FLAGS) main.cc
