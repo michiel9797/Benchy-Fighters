@@ -9,7 +9,7 @@
 
 #include <tuple>
 #include <SFML/System/Vector2.hpp>
-#include <nlohmann/json.hpp>
+#include "nlohmann-json/json.hpp"
 #include "action_list.h"
 using json = nlohmann::json;
 
