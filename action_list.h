@@ -2,28 +2,13 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 05-04-2025
+//Last edited: 08-04-2025
 
 #ifndef ActionListH
 #define ActionListH
 
+#include <cstddef>
 #include <tuple>
-
-struct projectiles
-{
-	//the full damage a projectile deals
-	int damage;
-	//how long a projectile lasts
-	int lifetime;
-	//the projectiles hitbox
-	int hitbox;
-	//the projectiles speed
-	int speed;
-	//the projectiles direction
-	std::tuple <float, float> direction;
-	//when the projectile was spawned
-	float spanwTime;
-};//projectiles
 
 //information needed to define a move
 struct actions
@@ -32,47 +17,41 @@ struct actions
 
 	//the full damage a move deals
 	int damage;
+	//the percentage by which the damage of future moves in the combo
+	//is decreased. This stacks multiplicatively with a minimum of 1 damage
+	float damage_scaling;
 	//the inputs required to execute the move. It works as follows:
 	//the first 3 numbers are reserved for the required input directions
 	//given the following numpad layout:
 	//7 8 9
 	//4 5 6
 	//1 2 3
-	//the number corresponding to the direction the player needs to have held
-	//is encoded, in order of what order the directions need to have been held in
+	//the number corresponding to the direction the player needs to have pressed
+	//is encoded, in order of what order the directions need to have been pressed in
 	//the last number stores what action button needs to have been pressed
-	//0: punch, 1: kick, 2: slash, 3: heavy slash
-	int inputs[4];
+	//0: (P)unch, 1: (K)ick, 2: (S)lash, 3: (H)eavy (S)lash
+	int inputs[2];
 	//the full amount of frames the move is active for, including its recovery
 	int uptime;
-	//the frames at which the first hitbox set appears and dissapears
-	int first_hitbox[2];
-	//the frame at which a possible second hitbox set appears and dissapears
-	int second_hitbox[2];
-	//the frame at which the first hurtbox set appears and dissapears
-	int first_hurtbox[2];
-	//the frame at which a possible second hurtbox set appears and dissapears
-	int second_hurtbox[2];
-	//the top left spot where each of the max 3 hitboxes appear
-	//0-2 encode the first set of hitboxes, 3-5 encode the second set
-	int hitbox_origin[6];
+	//the frames at which the hitbox set appears and dissapears
+	int hitbox[2];
+	//the frames at which the hurtbox set appears and dissapears
+	int hurtbox[2];
+	//the top left spot relative to the player where each of the max 3 hitboxes appear
+	int hitbox_origin[3][2];
 	//the lenght and width of the max 3 hitboxes
-	//0-2 encode the first set of hitboxes, 3-5 encode the second set
-	int hitbox_dimensions[6][2];
-	//the top left spot where each of the max 3 hurtboxes appear
-	//0-2 encode the first set of hitboxes, 3-5 encode the second set
-	int hurtbox_origin[6];
+	int hitbox_dimensions[3][2];
+	//the top left spot relative to the player where each of the max 3 hurtboxes appear
+	int hurtbox_origin[3][2];
 	//the lenght and width of the max 3 hurtboxes
-	//0-2 encode the first set of hitboxes, 3-5 encode the second set
-	int hurtbox_dimensions[6][2];
+	int hurtbox_dimensions[3][2];
 	//the angle at which a move launches
-	std::tuple <float, float> launch_angle;
+	float launch_angle[2];
 	//the force with which a move launches
 	float launch_force;
-	//if the move can be used grounded or aerial
-	bool is_aerial;
-	//the projectile this move spawns, if any
-	projectiles projectile;
+	//whether the move hits high, low or neutral
+	//0: neutral, 1: high, 2: low
+	int block_type;
 };//actions
 
 extern const actions actionList[];

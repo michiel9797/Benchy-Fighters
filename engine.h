@@ -2,13 +2,14 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 05-04-2025
+//Last edited: 06-04-2025
 
 #ifndef EngineH
 #define EngineH
 
+#include <cstddef>
 #include <tuple>
-#include <SFML/System/Vector2.hpp>
+#include <SFML/Graphics/Rect.hpp>
 #include "nlohmann-json/json.hpp"
 #include "action_list.h"
 using json = nlohmann::json;
@@ -22,7 +23,7 @@ struct playerstate
 	//how many times a player has been hit before touching the ground
 	int combo_count;
 	//the position of a player
-	float position;
+	float position[2];
 	//the direction a player is going in
 	std::tuple <float, float> direction;
 	//the force with which a player is going into a direction
@@ -37,6 +38,8 @@ struct playerstate
 	int frame;
 	//if the player is currently inactionable
 	bool inactionable;
+	//if the players current action has hit
+	bool has_hit;
 };//playerstate
 
 //information needed to define the state the game is in
@@ -55,6 +58,8 @@ class engine
 		gamestate getGamestate(int requestedState);
 
 	private:
+		//check if a player is hit by an action
+		bool detectHit();
 		//gamestates are ordered from new to old, so:
 		//0: most recent gamestate
 		//1: gamestate 1 frame ago
