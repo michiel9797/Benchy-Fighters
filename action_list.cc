@@ -3,13 +3,13 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 08-04-2025
+//Last edited: 09-04-2025
 
 #include "action_list.h"
 
 const actions actionList[] =
 {
-	{//Idle
+	{//Idle (0)
 		/*damage*/ -1, /*damage scaling*/ -1, /*inputs*/ {-1, -1}, 
 		/*uptime*/ -1, /*hitbox*/ {-1, -1}, /*hurtbox*/ {-1, -1},
 		/*hitbox origin*/ 		{{-1, -1}, {-1, -1}, {-1, -1}}, 
@@ -18,25 +18,25 @@ const actions actionList[] =
 		/*hurtbox dimensions*/ 	{{53, 141}, {-1, -1}, {-1, -1}},
 		/*launch angle*/ {-1, -1}, /*launch force*/ -1, /*block type*/ -1
 	},	
-	{//5P
+	{//5P (1)
 		/*damage*/ 26, /*damage scaling*/ 0.8, /*inputs*/ {-1, 0}, 
 		/*uptime*/ 15, /*hitbox*/ {5, 8}, /*hurtbox*/ {0, 15},
 		/*hitbox origin*/ 		{{85, 18}, {-1, -1}, {-1, -1}}, 
 		/*hitbox dimensions*/ 	{{101, 30}, {-1, -1}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-14, 35}, {13, 64}, {58, 43}}, 
 		/*hurtbox dimensions*/ 	{{99, 223}, {46, 30}, {139, 64}},
-		/*launch angle*/ {1, 0}, /*launch force*/ 40, /*block type*/ 0
+		/*launch angle*/ {1, 0.1}, /*launch force*/ 40, /*block type*/ 0
 	},	
-	{//5K
+	{//5K (2)
 		/*damage*/ 30, /*damage scaling*/ 0.7, /*inputs*/ {-1, 1}, 
 		/*uptime*/ 20, /*hitbox*/ {7, 14}, /*hurtbox*/ {0, 20},
 		/*hitbox origin*/ 		{{68, -47}, {68, -88}, {-1, -1}}, 
 		/*hitbox dimensions*/ 	{{61, 41}, {114, 95}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-14, 50}, {86, -40}, {135, -80}}, 
 		/*hurtbox dimensions*/ 	{{100, 242}, {50, 151}, {53, 111}},
-		/*launch angle*/ {1, 0}, /*launch force*/ 60, /*block type*/ 2
+		/*launch angle*/ {1, 0.1}, /*launch force*/ 60, /*block type*/ 2
 	},	
-	{//5S
+	{//5S (3)
 		/*damage*/ 42, /*damage scaling*/ 1, /*inputs*/ {-1, 2}, 
 		/*uptime*/ 22, /*hitbox*/ {7, 12}, /*hurtbox*/ {0, 22},
 		/*hitbox origin*/ 		{{118, 13}, {69, -15}, {44, -62}}, 
@@ -45,52 +45,52 @@ const actions actionList[] =
 		/*hurtbox dimensions*/ 	{{151, 10}, {243, 75}, {264, 136}},
 		/*launch angle*/ {1, 0.5}, /*launch force*/ 60, /*block type*/ 0
 	},	
-	{//5H
+	{//5H (4)
 		/*damage*/ 48, /*damage scaling*/ 0.9, /*inputs*/ {-1, 3}, 
 		/*uptime*/ 38, /*hitbox*/ {12, 17}, /*hurtbox*/ {0, 38},
 		/*hitbox origin*/ 		{{75, -25}, {75, -41}, {-1, -1}}, 
 		/*hitbox dimensions*/ 	{{86, 16}, {126, 30}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-10, 15}, {85, 4}, {85, -54}}, 
 		/*hurtbox dimensions*/ 	{{94, 138}, {26, 46}, {11, 72}},
-		/*launch angle*/ {1, 0}, /*launch force*/80, /*block type*/ 0
+		/*launch angle*/ {1, 0.1}, /*launch force*/80, /*block type*/ 0
 	},	
-	{//2P
+	{//2P (5)
 		/*damage*/ 22, /*damage scaling*/ 0.8, /*inputs*/ {2, 0}, 
 		/*uptime*/ 16, /*hitbox*/ {5, 8}, /*hurtbox*/ {0, 16},
 		/*hitbox origin*/ 		{{87, -23}, {-1, -1}, {-1, -1}}, 
 		/*hitbox dimensions*/ 	{{87, 30}, {-1, -1}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-15, 10}, {87, 0}, {-1, -1}}, 
 		/*hurtbox dimensions*/ 	{{100, 150}, {96, 61}, {-1, -1}},
-		/*launch angle*/ {1, 0}, /*launch force*/ 10, /*block type*/ 0
+		/*launch angle*/ {0.25, 0.1}, /*launch force*/ 10, /*block type*/ 0
 	},	
-	{//2K
+	{//2K (6)
 		/*damage*/ 26, /*damage scaling*/ 0.7, /*inputs*/ {2, 1}, 
 		/*uptime*/ 19, /*hitbox*/ {6, 9}, /*hurtbox*/ {0, 19},
 		/*hitbox origin*/ 		{{54, -56}, {54, -89}, {-1, -1}}, 
 		/*hitbox dimensions*/ 	{{62, 33}, {126, 48}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-23, 10}, {84, -49}, {121, -84}}, 
 		/*hurtbox dimensions*/ 	{{106, 145}, {38, 87}, {64, 54}},
-		/*launch angle*/ {1, 0.25}, /*launch force*/ 20, /*block type*/ 2
+		/*launch angle*/ {0.5, 0.25}, /*launch force*/ 20, /*block type*/ 2
 	},
-	{//2S
+	{//2S (7)
 		/*damage*/ 32, /*damage scaling*/ 0.9, /*inputs*/ {2, 2}, 
 		/*uptime*/ 32, /*hitbox*/ {11, 12}, /*hurtbox*/ {0, 32},
 		/*hitbox origin*/ 		{{54, -43}, {54, -53}, {54, -73}}, 
 		/*hitbox dimensions*/ 	{{43, 10}, {107, 19}, {147, 26}}, 
 		/*hurtbox origin*/ 		{{-11, 8}, {83, -38}, {101, -48}}, 
 		/*hurtbox dimensions*/ 	{{93, 111}, {18, 66}, {64, 55}},
-		/*launch angle*/ {1, 0.25}, /*launch force*/ 30, /*block type*/ 2
+		/*launch angle*/ {0.75, 0.25}, /*launch force*/ 30, /*block type*/ 2
 	},
-	{//2H
+	{//2H (8)
 		/*damage*/ 40, /*damage scaling*/ 0.9, /*inputs*/ {2, 3}, 
 		/*uptime*/ 43, /*hitbox*/ {11, 14}, /*hurtbox*/ {0, 43},
 		/*hitbox origin*/ 		{{79, 144}, {120, 165}, {-1, -1}}, 
 		/*hitbox dimensions*/ 	{{63, 157}, {62, 157}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-14, 109}, {69, 113}, {-1, -1}}, 
 		/*hurtbox dimensions*/ 	{{118, 242}, {125, 178}, {-1, -1}},
-		/*launch angle*/ {1, 0.5}, /*launch force*/ 70, /*block type*/ 0
+		/*launch angle*/ {0.5, 0.5}, /*launch force*/ 70, /*block type*/ 0
 	},
-	{//6P
+	{//6P (9)
 		/*damage*/ 34, /*damage scaling*/ 0.9, /*inputs*/ {6, 0}, 
 		/*uptime*/ 35, /*hitbox*/ {9, 14}, /*hurtbox*/ {0, 35},
 		/*hitbox origin*/ 		{{88, 29}, {125, 17}, {-1, -1}}, 
@@ -99,7 +99,7 @@ const actions actionList[] =
 		/*hurtbox dimensions*/ 	{{171, 18}, {191, 64}, {-1, -1}},
 		/*launch angle*/ {1, 0.5}, /*launch force*/ 40, /*block type*/ 0
 	},
-	{//6K
+	{//6K (10)
 		/*damage*/ 40, /*damage scaling*/ 0.9, /*inputs*/ {6, 1}, 
 		/*uptime*/ 37, /*hitbox*/ {25, 26}, /*hurtbox*/ {0, 37},
 		/*hitbox origin*/ 		{{44, 0}, {-1, -1}, {-1, -1}}, 
@@ -108,7 +108,7 @@ const actions actionList[] =
 		/*hurtbox dimensions*/ 	{{149, 81}, {99, 98}, {135, 139}},
 		/*launch angle*/ {1, 0.25}, /*launch force*/ 40, /*block type*/ 0
 	},
-	{//6H
+	{//6H (11)
 		/*damage*/ 52, /*damage scaling*/ 0.9, /*inputs*/ {6, 3}, 
 		/*uptime*/ 44, /*hitbox*/ {15, 18}, /*hurtbox*/ {0, 44},
 		/*hitbox origin*/ 		{{99, -41}, {-1, -1}, {-1, -1}}, 
@@ -118,3 +118,5 @@ const actions actionList[] =
 		/*launch angle*/ {1, 0.5}, /*launch force*/ 40, /*block type*/ 0
 	}
 };
+
+const int actionCount = std::size(actionList);
