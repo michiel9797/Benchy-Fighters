@@ -2,13 +2,14 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 09-04-2025
+//Last edited: 10-04-2025
 
 #ifndef ActionListH
 #define ActionListH
 
 #include <cstddef>
 #include <tuple>
+#include <map>
 
 //information needed to define a move
 struct actions
@@ -20,17 +21,6 @@ struct actions
 	//the percentage by which the damage of future moves in the combo
 	//is decreased. This stacks multiplicatively with a minimum of 1 damage
 	float damage_scaling;
-	//the inputs required to execute the move. It works as follows:
-	//the first 3 numbers are reserved for the required input directions
-	//given the following numpad layout:
-	//7 8 9
-	//4 5 6
-	//1 2 3
-	//the number corresponding to the direction the player needs to have pressed
-	//is encoded, in order of what order the directions need to have been pressed in
-	//the last number stores what action button needs to have been pressed
-	//0: (P)unch, 1: (K)ick, 2: (S)lash, 3: (H)eavy (S)lash
-	int inputs[2];
 	//the full amount of frames the move is active for, including its recovery
 	int uptime;
 	//the frames at which the hitbox set appears and dissapears
@@ -55,6 +45,17 @@ struct actions
 };//actions
 
 extern const actions actionList[];
-extern const int actionCount;
+
+//the inputs required to execute the move mapped to their action. It works as follows:
+//the first number is reserved for the required input directions
+//given the following numpad layout:
+//7 8 9
+//4 5 6
+//1 2 3
+//the number corresponding to the direction the player needs to have pressed is encoded
+//-1 is encoded if a direction is not required for the move
+//the last number stores what action button needs to have been pressed
+//0: (P)unch, 1: (K)ick, 2: (S)lash, 3: (H)eavy Slash
+extern const std::map<std::array<int, 2>, actions> buttonMapping;
 
 #endif

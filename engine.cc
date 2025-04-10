@@ -2,7 +2,7 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 09-04-2025
+//Last edited: 10-04-2025
 
 #include "engine.h"
 
@@ -23,6 +23,7 @@ playerstate::playerstate()
 	frame = 0;
 	inactionable = false;
 	hasHit = false;
+	mirror = false;
 }//playerstate
 
 playerstate::playerstate(int player)
@@ -45,6 +46,12 @@ playerstate::playerstate(int player)
 	frame = 0;
 	inactionable = false;
 	hasHit = false;
+	if(player == 1)
+	{
+		mirror = false;
+	} else {
+		mirror = true;
+	}//else
 }//playerstate
 
 gamestate::gamestate()
@@ -58,6 +65,55 @@ gamestate engine::getGamestate(int requestedState)
 {
 	return statecache[requestedState];
 }//getGamestate
+
+int engine::initInput(int player, json data)
+{
+	for(int i = 0; i < data.size(); i++)
+	{
+		if(data[i]["Pressed"] != nullptr)
+		{
+			std::string buttonString = data[i]["Pressed"];
+			char button = buttonString[1];
+			std::string timeString = data[i]["Time"];
+			float time = std::stof(timeString) * 1000;
+			inputList[player-1].push(std::make_pair(button, time));
+		}//if
+	}//for
+	if(inputList[player-1].size() <= 1)
+	{
+		std::cerr << "No input found" << std::endl;
+		return -1;
+	}
+	return 0;
+}//initInput
+
+void engine::setCurrentPlayer(int player)
+{
+	currentPlayer = player;
+}//setCurrentPlayer
+
+int engine::manageInputs(float time, int player)
+{
+	//remove all the inputs from the vector which have passed
+	//the buffers frame/time limit
+	while(statecache[0].processingInput[player-1].back().second < 
+		  ((statecache[0].frame * timePerFrame) - (framesInBuffer * timePerFrame)))
+	{
+		statecache[0].processingInput[player-1].erase(statecache[0].processingInput[player-1].end());
+	}//while
+
+	//add all the inputs from the input queue that have entered
+	//the buffers frame/time limit
+	while(inputList[player-1].front().second < statecache[0].frame * timePerFrame)
+	{
+		statecache[0].processingInput[player-1].push_back(inputList[player-1].front());
+		inputList[player-1].pop();
+	}//while
+	if(inputList[player-1].empty())
+		return 1;
+	
+	return 0;
+}
 
 void engine::tickForceOnPlayer(int player)
 {
@@ -75,6 +131,56 @@ void engine::applyGravity(int player)
 {
 	statecache[0].player[player-1].directionalForce[1] -= gravity * statecache[0].player[player-1].gravityScaling;
 }//applyGravity
+
+void engine::changePlayerPosition(int player, float x, float y)
+{
+	statecache[0].player[player-1].position[0] += x;
+	statecache[0].player[player-1].position[1] += y;
+}//changePlayerPosition
+
+int engine::getActionButton(int player)
+{
+	int i = 0;
+	char input = '\0';
+	while(input != 'w' && input != 'a' && input != 's' && input != 'd')
+	{
+		input = statecache[player-1].processingInput[player-1][i].first;
+		i++;
+	}//while
+	if(input == '\0')
+		return -1;
+	return keymapping.at(input);
+}//getAction
+
+int engine::getMovementButton(int player)
+{
+	int i = statecache[player-1].processingInput[player-1].size();
+	char input = '\0';
+	while(input != 'u' && input != 'i' && input != 'j' && input != 'k' &&
+		  i >= 0)
+	{
+		input = statecache[player-1].processingInput[player-1][i].first;
+		i--;
+	}//while
+	if(input == '\0')
+		return -1;
+	return keymapping.at(input);
+}//getMovement
+
+std::array<int, 2> engine::getInput(int player)
+{
+	std::array<int, 2> input = {getMovementButton(player), getActionButton(player)};
+	return input;
+}
+
+actions engine::getAction(std::array<int, 2> input)
+{
+	//in case the player is only moving, give them the idle action (-1, -1)
+	if(input[0] != -1 && input[1] == -1)
+		input[0] = -1;
+	actions currentAction = buttonMapping.at(input);
+	return currentAction;
+}//getInput
 
 std::vector<sf::FloatRect> engine::createBox(actions action, actions idle, float playerLocation[2], int boxCount, 
 						 				     bool mirror, bool grabHitbox)
@@ -138,17 +244,21 @@ bool engine::detectHit(int player)
 	actions attacker;
 	actions attackerIdle = actionList[0];
 	float attackerLocation[2];
+	bool mirrorAttacker;
 	actions defender;
 	actions defenderIdle = actionList[0];
 	float defenderLocation[2];
+	bool mirrorDefender;
 	if(player == 1)
 	{
 		attacker = statecache[0].player[0].action;
 		attackerLocation[0] = statecache[0].player[0].position[0];
 		attackerLocation[1] = statecache[0].player[0].position[1];
+		mirrorAttacker = statecache[0].player[0].mirror;
 		defender = statecache[0].player[1].action;
 		defenderLocation[0] = statecache[0].player[1].position[0];
 		defenderLocation[1] = statecache[0].player[1].position[1];
+		mirrorAttacker = statecache[0].player[1].mirror;
 	} else {
 		attacker = statecache[0].player[1].action;
 		attackerLocation[0] = statecache[0].player[1].position[0];
@@ -157,14 +267,6 @@ bool engine::detectHit(int player)
 		defenderLocation[0] = statecache[0].player[0].position[0];
 		defenderLocation[1] = statecache[0].player[0].position[1];
 	}//else
-
-	std::cout << attacker.damage<< std::endl;
-	std::cout << defender.damage << std::endl;
-
-	//if the attacker is to the right of the defender instead of to their left, 
-	//then the moves need to be flipped to face eachother
-	bool mirrorAttacker = attackerLocation[0] > defenderLocation[0];
-	bool mirrorDefender = !mirrorAttacker;
 
 	//since a move can use up to 3 hitboxes, and unused hitboxes
 	//are demarked with a -1, this variable will check per loop if
@@ -191,12 +293,6 @@ bool engine::detectHit(int player)
 	{
 		for(int i = 0; i < hitboxUsed; i++)
 		{
-			std::cout << "hitbox " << i + 1 << std::endl;
-			std::cout << "hurtbox " << j + 1 << std::endl;
-			std::cout << "hitbox origin: " << hitboxes[i].left << ", " << hitboxes[i].top <<  std::endl;
-			std::cout << "hitbox size: " << hitboxes[i].width << ", " << hitboxes[i].height << std::endl;
-			std::cout << "hurtbox origin: " << hurtboxes[j].left << ", " << hurtboxes[j].top << std::endl;
-			std::cout << "hurtbox size: " << hurtboxes[j].width << ", " << hurtboxes[j].height << std::endl;
 			if(hitboxes[i].intersects(hurtboxes[j]))
 				return true;
 		}//for
@@ -222,7 +318,7 @@ void engine::testGravity(int player, int action)
 	statecache[0].player[player-1].directionalForce[0] += actionList[action].launch_angle[0] * actionList[action].launch_force;
 	statecache[0].player[player-1].directionalForce[1] += actionList[action].launch_angle[1] * actionList[action].launch_force;
 	applyGravity(1);
-	changePosition(1);
+	tickForceOnPlayer(1);
 	int frame = 0;
 	while(statecache[0].player[player-1].position[1] != 0)
 	{
@@ -231,7 +327,7 @@ void engine::testGravity(int player, int action)
 		std::cout << "x: " << statecache[0].player[player-1].position[0] << std::endl;
 		std::cout << "y: " << statecache[0].player[player-1].position[1] << std::endl;
 		applyGravity(1);
-		changePosition(1);
+		tickForceOnPlayer(1);
 		if(statecache[0].player[player-1].position[1] < 0)
 		{
 			statecache[0].player[player-1].position[1] = 0;

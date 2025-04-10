@@ -2,17 +2,55 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 09-04-2025
+//Last edited: 10-04-2025
 
 #ifndef EngineH
 #define EngineH
 
+#include <stack>
+#include <queue>
+#include <vector>
+#include <utility>
+#include <cmath>
+#include <map>
 #include <SFML/Graphics/Rect.hpp>
 #include "nlohmann-json/json.hpp"
+
 #include "action_list.h"
+
 using json = nlohmann::json;
 
-const int gravity = 3;
+const float gravity = 1.5;
+const float gravityScalingRate = 1.2;
+const float damageScalingRate = 0.8;
+const float framerate = 30;
+//frametime is stored in miliseconds
+const float timePerFrame = 1000 / framerate;
+//the amount of frames to keep in the processing buffer
+const int framesInBuffer = ceil(framerate * 0.25);
+//the full amount of frames that will be generated if
+//the match doesn't end prematurely
+const int maxFrames = framerate * 99;
+
+const std::map<char, int> keymapping
+{
+	//up = 8
+	{'w', 8},
+	//left = 4
+	{'a', 4},
+	//down = 2
+	{'s', 2},
+	//right = 6
+	{'d', 6},
+	//u = punch = 0
+	{'u', 0},
+	//i = kick = 1
+	{'i', 1},
+	//j = slash = 2
+	{'j', 2},
+	//k = heavy slash = 3
+	{'k', 3}
+};//keymapping
 
 //information needed to define the state a player is in
 struct playerstate
@@ -41,6 +79,8 @@ struct playerstate
 	bool inactionable;
 	//if the players current action has hit
 	bool hasHit;
+	//if the players actions and inputs should be mirrored horizontally
+	bool mirror;
 };//playerstate
 
 //information needed to define the state the game is in
@@ -52,6 +92,8 @@ struct gamestate
 	playerstate player[2];
 	//the current frame the match is on 
 	int frame;
+	//a vector of inputs to process for both players
+	std::vector<std::pair<char, float>> processingInput[2];
 };//gamestate
 
 
@@ -60,6 +102,15 @@ class engine
 	public:
 		//return the requested stored gamestate
 		gamestate getGamestate(int requestedState);
+		//load the given input data into the chosen players
+		//input list
+		int initInput(int player, json data);
+		//set who is playing on this device. -1 if we are running
+		//in EMULATE mode
+		void setCurrentPlayer(int player);
+		//move inputs between buffers depending on the current frame
+		//returns 1 if no inputs are left in the input list
+		int manageInputs(float time, int player);
 
 		//test functions
 		void setAction(int player, int action);
@@ -74,6 +125,18 @@ class engine
 		void addForceToPlayer(int player, float x_force, float y_force);
 		//calculate gravity into a players directional force
 		void applyGravity(int player);
+		//change the players position directly
+		void changePlayerPosition(int player, float x, float y);
+		//extract the action value from the input buffer
+		//returns -1 if no action was found
+		int getActionButton(int player);
+		//extract the movement direction from the input buffer
+		//returns -1 if no movement direction was found
+		int getMovementButton(int player);
+		//read the current input from the input buffer
+		std::array<int, 2> getInput(int player);
+		//get the action from the given input
+		actions getAction(std::array<int, 2> input);
 		//return the hitboxes or hurtboxes from the given action at the
 		//asked location. Returns up to 3 hitboxes or hurtboxes, any unused
 		//boxes will be uninitialized. Idle needs to contain the player action
@@ -95,8 +158,8 @@ class engine
 		//...
 		//6: gamestate 6 frames ago
 		gamestate statecache[7];
-		//the full list of inputs
-		json inputList;
+		//a queue of inputs for both players
+		std::queue<std::pair<char, float>> inputList[2];
 		//the player that is playing on this device
 		int currentPlayer;
 
