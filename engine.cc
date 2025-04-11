@@ -2,7 +2,7 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 10-04-2025
+//Last edited: 12-04-2025
 
 #include "engine.h"
 
@@ -41,7 +41,7 @@ playerstate::playerstate(int player)
 	directionalForce[0] = 0;
 	directionalForce[1] = 0;
 	gravityScaling = 1;
-	damageScaling = 0;
+	damageScaling = 1;
 	action = actionList[0];
 	frame = 0;
 	inactionable = false;
@@ -59,6 +59,7 @@ gamestate::gamestate()
 	player[0] = playerstate(1);
 	player[1] = playerstate(2);
 	frame = 0;
+	finished = false;
 }//gamestate
 
 gamestate engine::getGamestate(int requestedState)
@@ -113,7 +114,32 @@ int engine::manageInputs(float time, int player)
 		return 1;
 	
 	return 0;
-}
+}//manageInputs
+
+void engine::setPlayerInactionable(int player, bool set)
+{
+	statecache[0].player[player-1].inactionable = set;
+}//setPlayerInactionable
+
+void engine::tickUpFrame()
+{
+	statecache[0].frame += 1;
+	//for each player
+	for(int i = 1; i <= 2; i++)
+	{
+		//if the player isn't idling
+		if(statecache[0].player[i-1].action.damage != -1)
+		{
+			statecache[0].player[i-1].frame += 1;
+			//if the players action is over
+			if(statecache[0].player[i-1].action.uptime > statecache[0].player[i-1].frame)
+			{
+				statecache[0].player[i-1].action = actionList[0];
+				setPlayerInactionable(i, false);
+			}//if
+		}//if
+	}//for
+}//tickUpFrame
 
 void engine::tickForceOnPlayer(int player)
 {
@@ -121,16 +147,102 @@ void engine::tickForceOnPlayer(int player)
 	statecache[0].player[player-1].position[1] += statecache[0].player[player - 1].directionalForce[1];
 }//changePosition
 
+void engine::applyGravity(int player)
+{
+	statecache[0].player[player-1].directionalForce[1] -= gravity * statecache[0].player[player-1].gravityScaling;
+}//applyGravity
+
+void engine::resolveCollision(int player)
+{
+	//check what player we need to calculate for
+	if(player == 1)
+	{
+		//check what distance between players we should calculate
+		if(statecache[0].player[0].mirror)
+		{
+			int playerDistance = abs(statecache[0].player[0].position[0] - statecache[0].player[1].position[0]);
+			int overlap = actionList[0].hurtbox_dimensions[0][0] - playerDistance;
+			statecache[0].player[0].position[0] += overlap;
+		} else {
+			int firstPlayerRightEdge = statecache[0].player[0].position[0] + actionList[0].hurtbox_dimensions[0][0];
+			int overlap = abs(firstPlayerRightEdge - statecache[0].player[1].position[0]);
+			statecache[0].player[0].position[0] -= overlap;
+		}//else
+	} else {
+		//check what distance between players we should calculate
+		if(statecache[0].player[1].mirror)
+		{
+			int playerDistance = abs(statecache[0].player[1].position[0] - statecache[0].player[0].position[0]);
+			int overlap = actionList[0].hurtbox_dimensions[0][0] - playerDistance;
+			statecache[0].player[1].position[0] += overlap;
+		} else {
+			int firstPlayerRightEdge = statecache[0].player[1].position[0] + actionList[0].hurtbox_dimensions[0][0];
+			int overlap = abs(firstPlayerRightEdge - statecache[0].player[0].position[0]);
+			statecache[0].player[1].position[0] -= overlap;
+		}//else
+	}//else
+}//resolveCollision
+
+bool engine::detectCollision()
+{
+	std::vector<sf::FloatRect> firstCollisionBoxSet = createBox(actionList[0], actionList[0],
+																statecache[0].player[0].position,
+															    1, statecache[0].player[0].mirror,
+															    false);
+	sf::FloatRect firstCollisionBox = firstCollisionBoxSet.front();
+	std::vector<sf::FloatRect> secondCollisionBoxSet = createBox(actionList[0], actionList[0],
+																 statecache[0].player[1].position,
+																 1, statecache[0].player[1].mirror,
+																 false);
+	sf::FloatRect secondCollisionBox = secondCollisionBoxSet.front();
+	return firstCollisionBox.intersects(secondCollisionBox);
+}//detectCollision
+
+void engine::tickMovement()
+{
+	//for each player
+	for(int i = 1; i <= 2; i++)
+	{
+		//remember if they were in the air before this tick
+		bool playerInAir =  statecache[0].player[i-1].position[1] < 0;
+		applyGravity(i);
+		tickForceOnPlayer(i);
+		//if the player ended up under the ground
+		if(statecache[0].player[i-1].position[1] >= 0)
+			statecache[0].player[i-1].position[1] = 0;
+		//if the player went from air to ground this tick
+		if(playerInAir && statecache[0].player[i-1].position[1] == 0)
+		{
+			setPlayerInactionable(i, false);
+			statecache[0].player[i-1].action = actionList[0];
+			statecache[0].player[i-1].comboCount = 0;
+			statecache[0].player[i-1].damageScaling = 1;
+			statecache[0].player[i-1].gravityScaling = 1;
+			statecache[0].player[i-1].directionalForce[0] = 0;
+			statecache[0].player[i-1].directionalForce[1] = 0;
+		}
+		//if the movement caused both players to collide
+		if(detectCollision())
+		{
+			resolveCollision(i);
+		}//if
+	}//for
+	//check which player is standing to the right and should be mirrored
+	if(statecache[0].player[0].position[0] < statecache[0].player[0].position[0])
+	{
+		statecache[0].player[0].mirror = true;
+		statecache[0].player[1].mirror = false;
+	} else {
+		statecache[0].player[0].mirror = false;
+		statecache[0].player[1].mirror = true;
+	}//else
+}//tickMovement
+
 void engine::addForceToPlayer(int player, float x_force, float y_force)
 {
 	statecache[0].player[player-1].directionalForce[0] += x_force;
 	statecache[0].player[player-1].directionalForce[1] += y_force;
 }//addForceToPlayer
-
-void engine::applyGravity(int player)
-{
-	statecache[0].player[player-1].directionalForce[1] -= gravity * statecache[0].player[player-1].gravityScaling;
-}//applyGravity
 
 void engine::changePlayerPosition(int player, float x, float y)
 {
@@ -171,14 +283,14 @@ std::array<int, 2> engine::getInput(int player)
 {
 	std::array<int, 2> input = {getMovementButton(player), getActionButton(player)};
 	return input;
-}
+}//getInput
 
 actions engine::getAction(std::array<int, 2> input)
 {
-	//in case the player is only moving, give them the idle action (-1, -1)
-	if(input[0] != -1 && input[1] == -1)
-		input[0] = -1;
-	actions currentAction = buttonMapping.at(input);
+	auto it = buttonMapping.find(input);
+	if(it == buttonMapping.end())
+		return buttonMapping.at({-1, -1});
+	actions currentAction = it->second;
 	return currentAction;
 }//getInput
 
@@ -223,12 +335,7 @@ std::vector<sf::FloatRect> engine::createBox(actions action, actions idle, float
 		} else {
 			for(int i = 0; i < boxCount; i++)
 			{
-				//to get the mirrored hitbox, we need to mirror on the x axis. To do this,
-				//we first need to grab the inverse of the x axis from the actions origin point,
-				//subtract from this the dimensions of the hitbox since we need to take the top left
-				//point instead of the top right. Then we need to subtract the width of the player
-				//model from their location before adding it, to account for the fact that the
-				//player origin point is at the top left of the player
+				//same mirroring method as before
 				hitbox.push_back(sf::FloatRect((-action.hurtbox_origin[i][0] - action.hurtbox_dimensions[i][0]) 
 											   + (playerLocation[0] + idle.hurtbox_dimensions[0][0]), 
 											   action.hurtbox_origin[i][1] + playerLocation[1],

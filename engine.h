@@ -2,7 +2,7 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 10-04-2025
+//Last edited: 12-04-2025
 
 #ifndef EngineH
 #define EngineH
@@ -20,6 +20,7 @@
 
 using json = nlohmann::json;
 
+const int jumpForce = 30;
 const float gravity = 1.5;
 const float gravityScalingRate = 1.2;
 const float damageScalingRate = 0.8;
@@ -94,6 +95,8 @@ struct gamestate
 	int frame;
 	//a vector of inputs to process for both players
 	std::vector<std::pair<char, float>> processingInput[2];
+	//if the current frame has finished calculations
+	bool finished;
 };//gamestate
 
 
@@ -118,13 +121,30 @@ class engine
 		void testGravity(int player, int action);
 
 	private:
-		//move a player according to their directional forces
+		//set a players inactionable value to the given bool
 		//1 = player 1, 2 = player 2
+		void setPlayerInactionable(int player, bool set);
+		//tick up the frame in the gamestate and on any non-idle
+		//actions being performed. If an action crosses over its
+		//uptime limit, replace it with idle and set the player
+		//actionable
+		void tickUpFrame();
+		//move a player according to their directional forces
 		void tickForceOnPlayer(int player);
-		//add the given directional forces to a players directional force
-		void addForceToPlayer(int player, float x_force, float y_force);
 		//calculate gravity into a players directional force
 		void applyGravity(int player);
+		//resolve collisions between players, pushing the given player out
+		void resolveCollision(int player);
+		//check if both players are colliding
+		bool detectCollision();
+		//tick all movement caused by forces on players, if a player hits
+		//the ground this way reset all of their combo values and set them
+		//actionable again. check which player should be mirrored and move
+		//players out of eachother if movement caused them to take in the
+		//same space
+		void tickMovement();
+		//add the given directional forces to a players directional force
+		void addForceToPlayer(int player, float x_force, float y_force);
 		//change the players position directly
 		void changePlayerPosition(int player, float x, float y);
 		//extract the action value from the input buffer
@@ -150,7 +170,6 @@ class engine
 		//check if a player is hit by an action
 		//the given players hitboxes will be checked against
 		//the other players hurtboxes
-		//1 = player 1, 2 = player 2
 		bool detectHit(int player);
 		//gamestates are ordered from new to old, so:
 		//0: most recent gamestate
