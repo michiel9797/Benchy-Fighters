@@ -128,6 +128,7 @@ void engine::setFirstFrame()
 gamestate engine::framegen()
 {
 	tickUpFrame();
+	tickMovement();
 	return statecache.front();
 }//framegen
 
@@ -270,8 +271,10 @@ void engine::applyHitEffects()
 		//if the player has hit their move
 		if(statecache.front().player[targetPlayer].hasHit == true)
 		{
-			//if the other player was blocking/holding back and didn't press an action button
-			if(getMovementButton(otherPlayer) == 4 && getActionButton(otherPlayer) == -1)
+			//if the other player was blocking/holding back, didn't press an action button
+			//and isn't in another move
+			if(getMovementButton(otherPlayer) == 4 && getActionButton(otherPlayer) == -1 &&
+			   statecache.front().player[otherPlayer].action.damage == -1)
 			{
 				float x_push = statecache.front().player[targetPlayer].action.launch_angle[0] *
 							   statecache.front().player[targetPlayer].action.launch_force;
@@ -302,11 +305,19 @@ void engine::applyHitEffects()
 		}//if
 	}//for
 	//check each player again, if they have hit and weren't hit
-	//set them actionable again
+	//set them actionable again. if they were hit and didn't hit,
+	//set their action to idle
 	for(int i = 1; i <= 2; i++)
 	{
 		if(statecache.front().player[i-1].hasHit && !wasHit[i-1])
+		{
 			statecache.front().player[i-1].inactionable = false;
+		} else if(wasHit[i-1])
+		{
+			statecache.front().player[otherPlayer].action = actionList[0];
+			statecache.front().player[otherPlayer].frame = 0;
+		}//else
+		statecache.front().player[i-1].hasHit = false;
 	}//for
 }//applyHitEffect
 
