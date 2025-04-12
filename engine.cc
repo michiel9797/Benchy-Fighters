@@ -175,7 +175,7 @@ void engine::resolveCollision(int player)
 	//for player 1: targetPlayer = 0, otherPlayer = 1
 	//for player 2: targetPlayer = 1, otherPlayer = 0
 	int targetPlayer = player - 1;
-	int otherPlayer = (player - 1) % 2;
+	int otherPlayer = player % 2;
 	//check what distance between players we should calculate
 	if(statecache.front().player[targetPlayer].mirror)
 	{
@@ -187,6 +187,9 @@ void engine::resolveCollision(int player)
 		int overlap = abs(targetPlayerRightEdge - statecache.front().player[otherPlayer].position[0]);
 		statecache.front().player[targetPlayer].position[0] -= overlap;
 	}//else
+	//both players lose their x_force by colliding
+	statecache.front().player[targetPlayer].directionalForce[0] = 0;
+	statecache.front().player[otherPlayer].directionalForce[0] = 0;
 }//resolveCollision
 
 bool engine::detectCollision()
@@ -210,17 +213,20 @@ void engine::tickMovement()
 	for(int i = 1; i <= 2; i++)
 	{
 		//remember if they were in the air before this tick
-		bool playerInAir =  statecache.front().player[i-1].position[1] < 0;
-		applyGravity(i);
+		bool playerInAir =  statecache.front().player[i-1].position[1] > 0;
+		//if they are, tick gravity on them
+		if(playerInAir)
+			applyGravity(i);
 		tickForceOnPlayer(i);
 		//if the player ended up under the ground
-		if(statecache.front().player[i-1].position[1] >= 0)
+		if(statecache.front().player[i-1].position[1] < 0)
 			statecache.front().player[i-1].position[1] = 0;
 		//if the player went from air to ground this tick
 		if(playerInAir && statecache.front().player[i-1].position[1] == 0)
 		{
 			setPlayerInactionable(i, false);
 			statecache.front().player[i-1].action = actionList[0];
+			statecache.front().player[i-1].frame = 0;
 			statecache.front().player[i-1].comboCount = 0;
 			statecache.front().player[i-1].damageScaling = 1;
 			statecache.front().player[i-1].gravityScaling = 1;
@@ -234,7 +240,7 @@ void engine::tickMovement()
 		}//if
 	}//for
 	//check which player is standing to the right and should be mirrored
-	if(statecache.front().player[0].position[0] < statecache.front().player[0].position[0])
+	if(statecache.front().player[0].position[0] > statecache.front().player[1].position[0])
 	{
 		statecache.front().player[0].mirror = true;
 		statecache.front().player[1].mirror = false;
@@ -267,7 +273,7 @@ void engine::applyHitEffects()
 		//for player 1: targetPlayer = 0, otherPlayer = 1
 		//for player 2: targetPlayer = 1, otherPlayer = 0
 		int targetPlayer = i - 1;
-		int otherPlayer = (i - 1) % 2;
+		int otherPlayer = i % 2;
 		//if the player has hit their move
 		if(statecache.front().player[targetPlayer].hasHit == true)
 		{
@@ -305,8 +311,7 @@ void engine::applyHitEffects()
 		}//if
 	}//for
 	//check each player again, if they have hit and weren't hit
-	//set them actionable again. if they were hit and didn't hit,
-	//set their action to idle
+	//set them actionable again. if they were hit, set their action to idle
 	for(int i = 1; i <= 2; i++)
 	{
 		if(statecache.front().player[i-1].hasHit && !wasHit[i-1])
@@ -314,8 +319,8 @@ void engine::applyHitEffects()
 			statecache.front().player[i-1].inactionable = false;
 		} else if(wasHit[i-1])
 		{
-			statecache.front().player[otherPlayer].action = actionList[0];
-			statecache.front().player[otherPlayer].frame = 0;
+			statecache.front().player[i-1].action = actionList[0];
+			statecache.front().player[i-1].frame = 0;
 		}//else
 		statecache.front().player[i-1].hasHit = false;
 	}//for
