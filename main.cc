@@ -34,6 +34,8 @@ int main(int argc, char * argv[])
 
 	std::ifstream f(argv[2]);
 	json data = json::parse(f);
+	//set the gamestate for the first iteration
+	gameEngine.setFirstFrame();
 
 	if(exec_mode == "EMULATE")
 	{
@@ -42,6 +44,7 @@ int main(int argc, char * argv[])
 		data = json::parse(f2);
 		gameEngine.initInput(2, data);
 		gameEngine.setCurrentPlayer(-1);
+		gameEngine.framegen();
 	} else {
 		int currentPlayer = std::stoi(argv[3]);
 		gameEngine.initInput(currentPlayer, data);

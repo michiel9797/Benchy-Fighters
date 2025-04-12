@@ -21,6 +21,7 @@
 using json = nlohmann::json;
 
 const int jumpForce = 30;
+const int movementAmount = 4;
 const float gravity = 1.5;
 const float gravityScalingRate = 1.2;
 const float damageScalingRate = 0.8;
@@ -80,6 +81,8 @@ struct playerstate
 	bool inactionable;
 	//if the players current action has hit
 	bool hasHit;
+	//if the player has sucessfully blocked this frame
+	bool hasBlocked;
 	//if the players actions and inputs should be mirrored horizontally
 	bool mirror;
 };//playerstate
@@ -114,6 +117,11 @@ class engine
 		//move inputs between buffers depending on the current frame
 		//returns 1 if no inputs are left in the input list
 		int manageInputs(float time, int player);
+		//initialize the first frame
+		void setFirstFrame();
+		//generate and return the next frame given the current first frame
+		//and the input lists
+		gamestate framegen();
 
 		//test functions
 		void setAction(int player, int action);
@@ -143,6 +151,13 @@ class engine
 		//players out of eachother if movement caused them to take in the
 		//same space
 		void tickMovement();
+		//check if any action currently has an active hitbox, if so check
+		//if that move has hit
+		void checkActiveHitbox();
+		//apply any effects that occur when a player has landed a hit
+		void applyHitEffects();
+		//set the next action or apply movement to the players
+		void setNextActions();
 		//add the given directional forces to a players directional force
 		void addForceToPlayer(int player, float x_force, float y_force);
 		//change the players position directly
@@ -176,7 +191,7 @@ class engine
 		//1: gamestate 1 frame ago
 		//...
 		//6: gamestate 6 frames ago
-		gamestate statecache[7];
+		std::vector<gamestate> statecache;
 		//a queue of inputs for both players
 		std::queue<std::pair<char, float>> inputList[2];
 		//the player that is playing on this device
