@@ -2,7 +2,7 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 12-04-2025
+//Last edited: 14-04-2025
 
 #include "engine.h"
 
@@ -36,7 +36,7 @@ playerstate::playerstate(int player)
 		position[0] = 0;
 		position[1] = 0;
 	} else {
-		position[0] = 200;
+		position[0] = 300;
 		position[1] = 0;
 	}//else
 	directionalForce[0] = 0;
@@ -82,7 +82,7 @@ int engine::initInput(int player, json data)
 			inputList[player-1].push(std::make_pair(button, time));
 		}//if
 	}//for
-	if(inputList[player-1].size() <= 1)
+	if(inputList[player-1].size() < 1)
 	{
 		std::cerr << "No input found" << std::endl;
 		return -1;
@@ -95,23 +95,26 @@ void engine::setCurrentPlayer(int player)
 	currentPlayer = player;
 }//setCurrentPlayer
 
-int engine::manageInputs(float time, int player)
+int engine::manageInputs(int player)
 {
 	//remove all the inputs from the vector which have passed
-	//the buffers frame/time limit
-	while(statecache.front().processingInput[player-1].back().second < 
-		  ((statecache.front().frame * timePerFrame) - (framesInBuffer * timePerFrame)))
+	//the buffers frame/time limit if there are inputs in the buffer
+	while(!statecache.front().processingInput[player-1].empty() && 
+		  statecache.front().processingInput[player-1].back().second < 
+		  (((statecache.front().frame + 1) * timePerFrame) - (framesInBuffer * timePerFrame)))
 	{
 		statecache.front().processingInput[player-1].erase(statecache.front().processingInput[player-1].end());
 	}//while
 
 	//add all the inputs from the input queue that have entered
-	//the buffers frame/time limit
-	while(inputList[player-1].front().second < statecache.front().frame * timePerFrame)
+	//the buffers frame/time limit if there are inputs in the input queue
+	while(!inputList[player-1].empty() && 
+		  inputList[player-1].front().second < (statecache.front().frame + 1) * timePerFrame)
 	{
 		statecache.front().processingInput[player-1].push_back(inputList[player-1].front());
 		inputList[player-1].pop();
 	}//while
+
 	if(inputList[player-1].empty())
 		return 1;
 	
@@ -128,7 +131,10 @@ void engine::setFirstFrame()
 gamestate engine::framegen()
 {
 	tickUpFrame();
-	tickMovement();
+	tickMovement(); 
+	checkActiveHitbox();
+	applyHitEffects();
+	setNextActions();
 	return statecache.front();
 }//framegen
 
@@ -258,7 +264,7 @@ void engine::checkActiveHitbox()
 		//check if the frame their action is on has an active hitbox
 		if(statecache.front().player[i-1].action.hitbox[0] <= statecache.front().player[i-1].frame &&
 		   statecache.front().player[i-1].action.hitbox[1] >= statecache.front().player[i-1].frame)
-		   statecache.front().player[i-1].hasHit = detectHit(i);
+			statecache.front().player[i-1].hasHit = detectHit(i);
 	}//for
 }
 
@@ -278,9 +284,10 @@ void engine::applyHitEffects()
 		if(statecache.front().player[targetPlayer].hasHit == true)
 		{
 			//if the other player was blocking/holding back, didn't press an action button
-			//and isn't in another move
-			if(getMovementButton(otherPlayer) == 4 && getActionButton(otherPlayer) == -1 &&
-			   statecache.front().player[otherPlayer].action.damage == -1)
+			//and isn't in another move. Function calls adjust player values back to 1 and 2
+			if(((getMovementButton(otherPlayer+1) == 4 && !statecache.front().player[otherPlayer].mirror) || 
+			   (getMovementButton(otherPlayer+1) == 6 && statecache.front().player[otherPlayer].mirror)) &&
+			   getActionButton(otherPlayer+1) == -1 && statecache.front().player[otherPlayer].action.damage == -1)
 			{
 				float x_push = statecache.front().player[targetPlayer].action.launch_angle[0] *
 							   statecache.front().player[targetPlayer].action.launch_force;
@@ -299,7 +306,7 @@ void engine::applyHitEffects()
 				//same check as before
 				if(!statecache.front().player[otherPlayer].mirror)
 					x_force = -x_force;
-				addForceToPlayer(otherPlayer, x_force, y_force);
+				addForceToPlayer(otherPlayer+1, x_force, y_force);
 				//deal at least 1 damage
 				statecache.front().player[otherPlayer].health -= std::max((int)(statecache.front().player[targetPlayer].action.damage *
 															statecache.front().player[otherPlayer].damageScaling), 1);
@@ -310,13 +317,15 @@ void engine::applyHitEffects()
 			}//else	
 		}//if
 	}//for
-	//check each player again, if they have hit and weren't hit
-	//set them actionable again. if they were hit, set their action to idle
+	//check each player again, if they have hit and weren't hit set them actionable again and
+	//set their action to idle. if they were hit, set their action to idle too
 	for(int i = 1; i <= 2; i++)
 	{
 		if(statecache.front().player[i-1].hasHit && !wasHit[i-1])
 		{
 			statecache.front().player[i-1].inactionable = false;
+			statecache.front().player[i-1].action = actionList[0];
+			statecache.front().player[i-1].frame = 0;
 		} else if(wasHit[i-1])
 		{
 			statecache.front().player[i-1].action = actionList[0];
@@ -332,7 +341,7 @@ void engine::setNextActions()
 	for(int i = 1; i <= 2; i++)
 	{
 		//if the player isn't inactionable, process their input
-		if(statecache.front().player[i-1].inactionable = false)
+		if(statecache.front().player[i-1].inactionable == false)
 		{
 			int actionButton = getActionButton(i);
 			int movementButton = getMovementButton(i);
@@ -351,8 +360,10 @@ void engine::setNextActions()
 					continue;
 
 				//if the player wants to move left
-				} else if(movementButton == 4)
+				} else if((movementButton == 4 && statecache.front().player[i-1].mirror) ||
+						  (movementButton = 6 && !statecache.front().player[i-1].mirror))
 				{
+					std::cout << "Yo" << std::endl;
 					statecache.front().player[i-1].position[0] -= movementAmount;
 
 				//the movement must be to the right
@@ -360,7 +371,7 @@ void engine::setNextActions()
 					statecache.front().player[i-1].position[0] += movementAmount;
 				}
 				//in case the player moved left or right, resolve any possible collisions
-				resolveCollision(i);
+				detectCollision();
 				continue;
 			
 			//an action button has been pressed
@@ -385,6 +396,14 @@ void engine::setNextActions()
 	}//for
 }//setNextActions
 
+bool engine::gameOver()
+{
+	if(statecache.front().player[0].health <= 0 || statecache.front().player[1].health <= 0 ||
+	   statecache.front().frame == maxFrames-1)
+		return true;
+	return false;
+}//gameOver
+
 void engine::addForceToPlayer(int player, float x_force, float y_force)
 {
 	statecache.front().player[player-1].directionalForce[0] += x_force;
@@ -400,28 +419,29 @@ void engine::changePlayerPosition(int player, float x, float y)
 int engine::getActionButton(int player)
 {
 	int i = 0;
+	int iMax = statecache.front().processingInput[player-1].size();
 	char input = '\0';
-	while(input != 'w' && input != 'a' && input != 's' && input != 'd')
+	while(input != 'u' && input != 'i' && input != 'j' && input != 'k' && i < iMax)
 	{
-		input = statecache[player-1].processingInput[player-1][i].first;
+		input = statecache.front().processingInput[player-1][i].first;
 		i++;
 	}//while
-	if(input == '\0')
+	if(input != 'u' && input != 'i' && input != 'j' && input != 'k')
 		return -1;
 	return keymapping.at(input);
 }//getAction
 
 int engine::getMovementButton(int player)
 {
-	int i = statecache[player-1].processingInput[player-1].size();
+	int i = 0;
+	int iMax = statecache.front().processingInput[player-1].size();
 	char input = '\0';
-	while(input != 'u' && input != 'i' && input != 'j' && input != 'k' &&
-		  i >= 0)
+	while(input != 'w' && input != 'a' && input != 's' && input != 'd' && i < iMax)
 	{
-		input = statecache[player-1].processingInput[player-1][i].first;
-		i--;
+		input = statecache.front().processingInput[player-1][i].first;
+		i++;
 	}//while
-	if(input == '\0')
+	if(input != 'w' && input != 'a' && input != 's' && input != 'd')
 		return -1;
 	return keymapping.at(input);
 }//getMovement
@@ -517,7 +537,7 @@ bool engine::detectHit(int player)
 	//for player 1: targetPlayer = 0, otherPlayer = 1
 	//for player 2: targetPlayer = 1, otherPlayer = 0
 	int targetPlayer = player - 1;
-	int otherPlayer = (player - 1) % 2;
+	int otherPlayer = player % 2;
 
 	attacker = statecache.front().player[targetPlayer].action;
 	attackerLocation[0] = statecache.front().player[targetPlayer].position[0];
@@ -526,7 +546,7 @@ bool engine::detectHit(int player)
 	defender = statecache.front().player[otherPlayer].action;
 	defenderLocation[0] = statecache.front().player[otherPlayer].position[0];
 	defenderLocation[1] = statecache.front().player[otherPlayer].position[1];
-	mirrorAttacker = statecache.front().player[otherPlayer].mirror;
+	mirrorDefender = statecache.front().player[otherPlayer].mirror;
 
 	//since a move can use up to 3 hitboxes, and unused hitboxes
 	//are demarked with a -1, this variable will check per loop if
@@ -597,3 +617,13 @@ void engine::testGravity(int player, int action)
 	}//while
 	return;
 }//testGravity
+
+void engine::printInputBuffer(int player)
+{
+	std::cout << "Player " << player << " processing input list" << std::endl;
+	for(int i = 0; i < statecache.front().processingInput[player-1].size(); i++)
+	{
+		std::cout << "Input: " << statecache.front().processingInput[player-1][i].first
+				  << " Time: " << statecache.front().processingInput[player-1][i].second << std::endl;
+	}//for
+}

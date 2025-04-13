@@ -3,7 +3,7 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 10-04-2025
+//Last edited: 14-04-2025
 
 #include "action_list.h" 
 
@@ -25,7 +25,7 @@ const actions actionList[] =
 		/*hitbox dimensions*/ 	{{101, 30}, {-1, -1}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-14, 35}, {13, 64}, {58, 43}}, 
 		/*hurtbox dimensions*/ 	{{99, 223}, {46, 30}, {139, 64}},
-		/*launch angle*/ {1, 0.1}, /*launch force*/ 40, /*block type*/ 0
+		/*launch angle*/ {1, 0.1}, /*launch force*/ 10, /*block type*/ 0
 	},	
 	{//5K (2)
 		/*damage*/ 30, /*damage scaling*/ 0.7, 
@@ -34,7 +34,7 @@ const actions actionList[] =
 		/*hitbox dimensions*/ 	{{61, 41}, {114, 95}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-14, 50}, {86, -40}, {135, -80}}, 
 		/*hurtbox dimensions*/ 	{{100, 242}, {50, 151}, {53, 111}},
-		/*launch angle*/ {1, 0.1}, /*launch force*/ 60, /*block type*/ 2
+		/*launch angle*/ {1, 0.1}, /*launch force*/ 20, /*block type*/ 2
 	},	
 	{//5S (3)
 		/*damage*/ 42, /*damage scaling*/ 1, 
@@ -43,7 +43,7 @@ const actions actionList[] =
 		/*hitbox dimensions*/ 	{{83, 26}, {133, 47}, {171, 132}}, 
 		/*hurtbox origin*/ 		{{61, 20}, {32, -14}, {-45, -63}}, 
 		/*hurtbox dimensions*/ 	{{151, 10}, {243, 75}, {264, 136}},
-		/*launch angle*/ {1, 0.5}, /*launch force*/ 60, /*block type*/ 0
+		/*launch angle*/ {1, 0.5}, /*launch force*/ 20, /*block type*/ 0
 	},	
 	{//5H (4)
 		/*damage*/ 48, /*damage scaling*/ 0.9, 
@@ -52,7 +52,7 @@ const actions actionList[] =
 		/*hitbox dimensions*/ 	{{86, 16}, {126, 30}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-10, 15}, {85, 4}, {85, -54}}, 
 		/*hurtbox dimensions*/ 	{{94, 138}, {26, 46}, {11, 72}},
-		/*launch angle*/ {1, 0.1}, /*launch force*/80, /*block type*/ 0
+		/*launch angle*/ {1, 0.1}, /*launch force*/ 30, /*block type*/ 0
 	},	
 	{//2P (5)
 		/*damage*/ 22, /*damage scaling*/ 0.8, 
@@ -61,7 +61,7 @@ const actions actionList[] =
 		/*hitbox dimensions*/ 	{{87, 30}, {-1, -1}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-15, 10}, {87, 0}, {-1, -1}}, 
 		/*hurtbox dimensions*/ 	{{100, 150}, {96, 61}, {-1, -1}},
-		/*launch angle*/ {0.25, 0.1}, /*launch force*/ 10, /*block type*/ 0
+		/*launch angle*/ {0.25, 0.1}, /*launch force*/ 20, /*block type*/ 0
 	},	
 	{//2K (6)
 		/*damage*/ 26, /*damage scaling*/ 0.7, 
@@ -88,7 +88,7 @@ const actions actionList[] =
 		/*hitbox dimensions*/ 	{{63, 157}, {62, 157}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-14, 109}, {69, 113}, {-1, -1}}, 
 		/*hurtbox dimensions*/ 	{{118, 242}, {125, 178}, {-1, -1}},
-		/*launch angle*/ {0.5, 0.5}, /*launch force*/ 70, /*block type*/ 0
+		/*launch angle*/ {0.5, 0.5}, /*launch force*/ 30, /*block type*/ 0
 	},
 	{//6P (9)
 		/*damage*/ 34, /*damage scaling*/ 0.9, 
@@ -97,7 +97,7 @@ const actions actionList[] =
 		/*hitbox dimensions*/ 	{{37, 12}, {119, 72}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-26, -108}, {-26, -126}, {-1, -1}}, 
 		/*hurtbox dimensions*/ 	{{171, 18}, {191, 64}, {-1, -1}},
-		/*launch angle*/ {1, 0.5}, /*launch force*/ 40, /*block type*/ 0
+		/*launch angle*/ {1, 0.5}, /*launch force*/ 20, /*block type*/ 0
 	},
 	{//6K (10)
 		/*damage*/ 40, /*damage scaling*/ 0.9, 
@@ -106,7 +106,7 @@ const actions actionList[] =
 		/*hitbox dimensions*/ 	{{148, 75}, {-1, -1}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-19, 35}, {102, 13}, {-34, -47}},
 		/*hurtbox dimensions*/ 	{{149, 81}, {99, 98}, {135, 139}},
-		/*launch angle*/ {1, 0.25}, /*launch force*/ 40, /*block type*/ 0
+		/*launch angle*/ {1, 0.25}, /*launch force*/ 20, /*block type*/ 0
 	},
 	{//6H (11)
 		/*damage*/ 52, /*damage scaling*/ 0.9, 
@@ -115,7 +115,7 @@ const actions actionList[] =
 		/*hitbox dimensions*/ 	{{144, 74}, {-1, -1}, {-1, -1}}, 
 		/*hurtbox origin*/ 		{{-11, 26}, {110, -24}, {-11, -60}},
 		/*hurtbox dimensions*/ 	{{120, 85}, {58, 37}, {110, 85}},
-		/*launch angle*/ {1, 0.5}, /*launch force*/ 40, /*block type*/ 0
+		/*launch angle*/ {1, 0.5}, /*launch force*/ 20, /*block type*/ 0
 	}
 };//actionList
 

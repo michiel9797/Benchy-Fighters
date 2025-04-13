@@ -2,7 +2,7 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 10-04-2025
+//Last edited: 14-04-2025
 
 #include <iostream>
 #include <fstream>
@@ -42,8 +42,11 @@ int main(int argc, char * argv[])
 		gameEngine.initInput(1, data);
 		std::ifstream f2(argv[3]);
 		data = json::parse(f2);
-		gameEngine.initInput(2, data);
+		if(gameEngine.initInput(2, data) == -1)
+			return -1;
 		gameEngine.setCurrentPlayer(-1);
+		gameEngine.manageInputs(1);
+		gameEngine.manageInputs(2);
 		gameEngine.framegen();
 	} else {
 		int currentPlayer = std::stoi(argv[3]);

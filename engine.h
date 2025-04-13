@@ -2,7 +2,7 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 12-04-2025
+//Last edited: 14-04-2025
 
 #ifndef EngineH
 #define EngineH
@@ -116,7 +116,7 @@ class engine
 		void setCurrentPlayer(int player);
 		//move inputs between buffers depending on the current frame
 		//returns 1 if no inputs are left in the input list
-		int manageInputs(float time, int player);
+		int manageInputs(int player);
 		//initialize the first frame
 		void setFirstFrame();
 		//generate and return the next frame given the current first frame
@@ -127,6 +127,7 @@ class engine
 		void setAction(int player, int action);
 		bool checkHit(int player);
 		void testGravity(int player, int action);
+		void printInputBuffer(int player);
 
 	private:
 		//set a players inactionable value to the given bool
@@ -158,6 +159,9 @@ class engine
 		void applyHitEffects();
 		//set the next action or apply movement to the players
 		void setNextActions();
+		//check if the game is over or not, this happens when a players health reaches 0
+		//or if the framecap is reached
+		bool gameOver();
 		//add the given directional forces to a players directional force
 		void addForceToPlayer(int player, float x_force, float y_force);
 		//change the players position directly
