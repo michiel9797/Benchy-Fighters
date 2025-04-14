@@ -69,6 +69,41 @@ gamestate engine::getGamestate(int requestedState)
 	return statecache[requestedState];
 }//getGamestate
 
+void engine::setGamestate(gamestate state)
+{
+	statecache[0] = state;
+}//setGamestate
+
+bool engine::getFinished()
+{
+	return statecache.front().finished;
+}
+
+void engine::printGamestate(gamestate state)
+{
+	std::cout << "Frame: " << state.frame << std::endl;
+	std::cout << "Finished: " << state.finished << std::endl;
+	for(int i = 1; i <= 2; i++)
+	{
+		playerstate currentPlayer = state.player[i-1];
+		std::cout << "Player: " << i << std::endl;
+		std::cout << "Health: " << currentPlayer.health << std::endl;
+		std::cout << "Combo count: " << currentPlayer.comboCount << std::endl;
+		std::cout << "Position: " << currentPlayer.position[0] << ", " << currentPlayer.position[1] << std::endl;
+		std::cout << "Directional force: " << currentPlayer.directionalForce[0] << ", " 
+				  << currentPlayer.directionalForce[1] << std::endl;
+		std::cout << "Gravity scaling: " << currentPlayer.gravityScaling << std::endl;
+		std::cout << "Damage scaling: " << currentPlayer.gravityScaling << std::endl;
+		std::cout << "Action damage: " << currentPlayer.action.damage << std::endl;
+		std::cout << "Frame: " << currentPlayer.frame << std::endl;
+		std::cout << "Inactionable: " << currentPlayer.inactionable << std::endl;
+		std::cout << "Has hit: " << currentPlayer.hasHit << std::endl;
+		std::cout << "Has blocked: " << currentPlayer.hasBlocked << std::endl;
+		std::cout << "Mirror: " << currentPlayer.mirror << std::endl;
+	}//for
+	std::cout << std::endl;
+}//printGamestate
+
 int engine::initInput(int player, json data)
 {
 	for(int i = 0; i < data.size(); i++)
@@ -128,6 +163,17 @@ void engine::setFirstFrame()
 	statecache.insert(statecache.begin(), firstState);
 }//setFirstFrame
 
+void engine::prepStatecache()
+{
+	if(statecache.size() >= 7)
+	{
+		for(int i = 6; i > 0; i--)
+		{
+			statecache[i] = statecache[i-1];
+		}//for
+	}//if
+}//prepStatecache
+
 gamestate engine::framegen()
 {
 	tickUpFrame();
@@ -135,6 +181,7 @@ gamestate engine::framegen()
 	checkActiveHitbox();
 	applyHitEffects();
 	setNextActions();
+	statecache.front().finished = gameOver();
 	return statecache.front();
 }//framegen
 
@@ -399,7 +446,7 @@ void engine::setNextActions()
 bool engine::gameOver()
 {
 	if(statecache.front().player[0].health <= 0 || statecache.front().player[1].health <= 0 ||
-	   statecache.front().frame == maxFrames-1)
+	   statecache.front().frame >= maxFrames-1)
 		return true;
 	return false;
 }//gameOver

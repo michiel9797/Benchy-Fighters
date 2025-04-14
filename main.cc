@@ -6,10 +6,40 @@
 
 #include <iostream>
 #include <fstream>
+#include <chrono>
 #include "nlohmann-json/json.hpp"
 #include "engine.h"
 
 using json = nlohmann::json;
+
+void gameLoop(engine gameEngine)
+{
+	float counter = 0;
+    int realcounter = 0;
+	gameEngine.manageInputs(1);
+	gameEngine.manageInputs(2);
+    auto frame_interval = std::chrono::milliseconds((int)timePerFrame);
+    auto start = std::chrono::high_resolution_clock::now();
+    auto current = start;
+	engine storeEngine;
+    while (!gameEngine.getFinished()) {
+        gameEngine.printGamestate(gameEngine.framegen());
+		gameEngine.prepStatecache();
+		gameEngine.manageInputs(1);
+		gameEngine.manageInputs(2);
+        current += frame_interval;
+        counter += (int)timePerFrame;
+        realcounter += 1;
+		std::this_thread::sleep_until(current);
+    }
+    /*auto end = std::chrono::high_resolution_clock::now();
+    auto diff = end - start;
+    std::cout << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
+    std::cout << "Counter reached: " << counter << std::endl;
+    std::cout << "Frames counted: " << realcounter << std::endl;*/
+}//gameLoop
+
+
 
 //arguments:
 //0: program name
@@ -45,9 +75,7 @@ int main(int argc, char * argv[])
 		if(gameEngine.initInput(2, data) == -1)
 			return -1;
 		gameEngine.setCurrentPlayer(-1);
-		gameEngine.manageInputs(1);
-		gameEngine.manageInputs(2);
-		gameEngine.framegen();
+		gameLoop(gameEngine);
 	} else {
 		int currentPlayer = std::stoi(argv[3]);
 		gameEngine.initInput(currentPlayer, data);

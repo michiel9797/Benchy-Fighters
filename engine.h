@@ -108,6 +108,12 @@ class engine
 	public:
 		//return the requested stored gamestate
 		gamestate getGamestate(int requestedState);
+		//set the frontmost gamestate
+		void setGamestate(gamestate state);
+		//check if the game has finished
+		bool getFinished();
+		//print all gamestate information to commandline
+		void printGamestate(gamestate state);
 		//load the given input data into the chosen players
 		//input list
 		int initInput(int player, json data);
@@ -119,6 +125,9 @@ class engine
 		int manageInputs(int player);
 		//initialize the first frame
 		void setFirstFrame();
+		//if we are at the 7 frame limit, move all elements back to allow the
+		//first frame to be overwritten
+		void prepStatecache();
 		//generate and return the next frame given the current first frame
 		//and the input lists
 		gamestate framegen();
