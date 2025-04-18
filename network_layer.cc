@@ -10,3 +10,29 @@ networkingLayer::networkingLayer(int thisDevice)
 {
 	device = thisDevice;
 }//networkingLayer
+
+bool yojimboLayer::startConnection()
+{
+	return false;
+}//startConnection
+
+void yojimboLayer::startMatch()
+{
+	return;
+}//startMatch
+
+void yojimboLayer::sendMessage(std::vector<std::pair<char, float>> input)
+{
+	return;
+}//sendMessage
+
+std::vector<std::pair<char, float>> yojimboLayer::receiveMessage()
+{
+	std::vector<std::pair<char, float>> temp;
+	return temp;
+}//receiveMessage
+
+void yojimboLayer::endConnection()
+{
+	return;
+}//endConnections

@@ -2,7 +2,7 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 14-04-2025
+//Last edited: 16-04-2025
 
 #ifndef EngineH
 #define EngineH
@@ -191,10 +191,10 @@ class engine
 		//that stores the collision box of the player, as the top left of the
 		//collision box is the origin point of actions and its width may be
 		//needed. When mirror is set true, the created box will be mirrored
-		//in location horizontally. if hitbox is true, a hitbox will be calcuclated.
+		//in location horizontally. If hitbox is true, a hitbox will be calcuclated.
 		//otherwise a hurtbox will be calculated
 		std::vector<sf::FloatRect> createBox(actions action, actions idle, float playerLocation[2],
-								 			 int boxCount, bool mirror, bool hitbox);
+								 			 int boxCount, bool mirror, bool grabHitbox);
 		//check if a player is hit by an action
 		//the given players hitboxes will be checked against
 		//the other players hurtboxes

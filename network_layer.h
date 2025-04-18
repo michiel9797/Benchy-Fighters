@@ -9,6 +9,7 @@
 
 #include <vector>
 #include <utility>
+#include "alpaca/alpaca.h" 
 
 class networkingLayer
 {
@@ -18,19 +19,39 @@ class networkingLayer
 		networkingLayer(int thisDevice);
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
-		virtual bool startConnection();
+		virtual bool startConnection() = 0;
 		//have the server device send the start of match signal
-		virtual void startMatch();
+		virtual void startMatch() = 0;
 		//send a message in the shape of an input vector, can be used to express
 		//other messages too
-		virtual void sendMessage(std::vector<std::pair<char, float>> input);
+		virtual void sendMessage(std::vector<std::pair<char, float>> input) = 0;
 		//receive messages that have been sent to you [may need to be a different shape]
-		virtual std::vector<std::pair<char, float>> receiveMessage();
+		virtual std::vector<std::pair<char, float>> receiveMessage() = 0;
 		//break the connection with other devices
-		virtual void endConnection();
+		virtual void endConnection() = 0;
 	private:
 		//which device we are
 		int device;
 };//networkingLayer
+
+class yojimboLayer: public networkingLayer
+{
+	public:
+		//start the connection with the other device, once returned with True 
+		//the device will assume the connection has been established
+		bool startConnection();
+		//have the server device send the start of match signal
+		void startMatch();
+		//send a message in the shape of an input vector, can be used to express
+		//other messages too
+		void sendMessage(std::vector<std::pair<char, float>> input);
+		//receive messages that have been sent to you [may need to be a different shape]
+		std::vector<std::pair<char, float>> receiveMessage();
+		//break the connection with other devices
+		void endConnection();
+	private:
+		//which device we are
+		int device;
+};//yojimboLayer
 
 #endif

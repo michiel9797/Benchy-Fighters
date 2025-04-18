@@ -2,12 +2,10 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 14-04-2025
+//Last edited: 16-04-2025
 
-#include "engine.h"
-
-//testing
 #include <iostream>
+#include "engine.h"
 
 playerstate::playerstate()
 {
@@ -77,7 +75,7 @@ void engine::setGamestate(gamestate state)
 bool engine::getFinished()
 {
 	return statecache.front().finished;
-}
+}//getFinished
 
 void engine::printGamestate(gamestate state)
 {
@@ -317,7 +315,7 @@ void engine::checkActiveHitbox()
 
 void engine::applyHitEffects()
 {
-	//store if a player has been hit this frame
+	//store for each player if they have been hit this frame
 	bool wasHit[2] = {false, false};
 	//for each player
 	for(int i = 1; i <= 2; i++)
@@ -336,6 +334,7 @@ void engine::applyHitEffects()
 			   (getMovementButton(otherPlayer+1) == 6 && statecache.front().player[otherPlayer].mirror)) &&
 			   getActionButton(otherPlayer+1) == -1 && statecache.front().player[otherPlayer].action.damage == -1)
 			{
+				//On block, a player is only pushed back and not thrown up
 				float x_push = statecache.front().player[targetPlayer].action.launch_angle[0] *
 							   statecache.front().player[targetPlayer].action.launch_force;
 				//if the other player isn't mirrored, then to be pushed backwards
