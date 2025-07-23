@@ -19,7 +19,7 @@ void gameLoop(engine gameEngine)
     int realcounter = 0;
 	gameEngine.manageInputs(1);
 	gameEngine.manageInputs(2);
-    auto frame_interval = std::chrono::milliseconds((int)timePerFrame);
+    auto frame_interval = std::chrono::milliseconds(timePerFrame);
     auto start = std::chrono::high_resolution_clock::now();
     auto current = start;
 	engine storeEngine;
@@ -33,11 +33,11 @@ void gameLoop(engine gameEngine)
         realcounter += 1;
 		std::this_thread::sleep_until(current);
     }
-    /*auto end = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
     auto diff = end - start;
     std::cout << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
     std::cout << "Counter reached: " << counter << std::endl;
-    std::cout << "Frames counted: " << realcounter << std::endl;*/
+    std::cout << "Frames counted: " << realcounter << std::endl;
 }//gameLoop
 
 
@@ -45,6 +45,8 @@ void gameLoop(engine gameEngine)
 //arguments:
 //0: program name
 //1: execution mode, either "SIMULATE" or "EMULATE"
+//(a simulation run is a run where another game instance has to be launched and connected)
+//(an emulation run is a run where 2 players are emulated on the same device)
 //2: json file with player input
 //-EMULATE: input is routed to player 1
 //-SIMULATE: input is routed to the player pointed at by argument 3
@@ -56,11 +58,29 @@ void gameLoop(engine gameEngine)
 int main(int argc, char * argv[])
 {
 	std::string exec_mode = argv[1];
+	if(exec_mode == "--help")
+	{
+		std::cout << "arguments:" << std::endl;
+		std::cout << "0: program name" << std::endl;
+		std::cout << "1: execution mode, either \"SIMULATE\" or \"EMULATE\"" << std::endl;
+		std::cout << "(a simulation run is a run where another game instance has to be launched and connected)" << std::endl;
+		std::cout << "(an emulation run is a run where 2 players are emulated on the same device)" << std::endl;
+		std::cout << "2: json file with player input" << std::endl;
+		std::cout << "|-EMULATE mode: input is routed to player 1" << std::endl;
+		std::cout << "|-SIMULATE mode: input is routed to the player pointed at by argument 3" << std::endl;
+		std::cout << "3:" << std::endl;
+		std::cout << "|-EMULATE mode: json file with player input, is routed to player 2"<< std::endl;
+		std::cout << "|-SIMULATE mode: which player is playing on this device" << std::endl;
+		std::cout << "||-1: player 1 is playing on this device" << std::endl;
+		std::cout << "||-2: player 2 is playing on this device" << std::endl; 
+		return 0;
+	}//if
+
 	if(!(argc == 4 && (exec_mode == "SIMULATE" || exec_mode == "EMULATE")))
 	{
-		std::cerr << "Incorrect program call" << std::endl;
+		std::cerr << "Incorrect program call, call \"BenchyFighters --help\" for instructions" << std::endl;
 		return -1;
-	}
+	}//if
 	engine gameEngine;
 
 	std::ifstream f(argv[2]);

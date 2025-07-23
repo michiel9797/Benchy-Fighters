@@ -445,7 +445,7 @@ void engine::setNextActions()
 bool engine::gameOver()
 {
 	if(statecache.front().player[0].health <= 0 || statecache.front().player[1].health <= 0 ||
-	   statecache.front().frame >= maxFrames-1)
+	   statecache.front().frame >= maxFrames)
 		return true;
 	return false;
 }//gameOver

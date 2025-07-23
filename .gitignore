@@ -31,4 +31,5 @@
 *.out
 *.app
 BenchyFighters
+test_input.json
 out.txt

@@ -16,11 +16,6 @@ bool yojimboLayer::startConnection()
 	return false;
 }//startConnection
 
-void yojimboLayer::startMatch()
-{
-	return;
-}//startMatch
-
 void yojimboLayer::sendMessage(std::vector<std::pair<char, float>> input)
 {
 	return;
@@ -36,3 +31,13 @@ void yojimboLayer::endConnection()
 {
 	return;
 }//endConnections
+
+void yojimboServer::startMatch()
+{
+	return;
+}//startMatch
+
+void yojimboServer::endMatch()
+{
+	return;
+}//endMatch

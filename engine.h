@@ -25,10 +25,10 @@ const int movementAmount = 4;
 const float gravity = 1.5;
 const float gravityScalingRate = 1.2;
 const float damageScalingRate = 0.8;
-const float framerate = 30;
+const float framerate = 60;
 //frametime is stored in miliseconds
-const float timePerFrame = 1000 / framerate;
-//the amount of frames to keep in the processing buffer
+const int timePerFrame = ceil(1000 / framerate);
+//the amount of frames to keep inputs in the processing buffer
 const int framesInBuffer = ceil(framerate * 0.25);
 //the full amount of frames that will be generated if
 //the match doesn't end prematurely

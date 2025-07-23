@@ -20,8 +20,6 @@ class networkingLayer
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
 		virtual bool startConnection() = 0;
-		//have the server device send the start of match signal
-		virtual void startMatch() = 0;
 		//send a message in the shape of an input vector, can be used to express
 		//other messages too
 		virtual void sendMessage(std::vector<std::pair<char, float>> input) = 0;
@@ -34,14 +32,21 @@ class networkingLayer
 		int device;
 };//networkingLayer
 
+class serverLayer: public networkingLayer
+{
+	public:
+		//have the server device send the start of match signal
+		virtual void startMatch() = 0;
+		//have the sever device send the end of match signal
+		virtual void endMatch() = 0;
+};//serverlayer
+
 class yojimboLayer: public networkingLayer
 {
 	public:
 		//start the connection with the other device, once returned with True 
 		//the device will assume the connection has been established
 		bool startConnection();
-		//have the server device send the start of match signal
-		void startMatch();
 		//send a message in the shape of an input vector, can be used to express
 		//other messages too
 		void sendMessage(std::vector<std::pair<char, float>> input);
@@ -53,5 +58,27 @@ class yojimboLayer: public networkingLayer
 		//which device we are
 		int device;
 };//yojimboLayer
+
+class yojimboServer: public serverLayer
+{
+	public:
+		//start the connection with the other device, once returned with True 
+		//the device will assume the connection has been established
+		bool startConnection();
+		//have the server device send the start of match signal
+		void startMatch();
+		//have the sever device send the end of match signal
+		virtual void endMatch();
+		//send a message in the shape of an input vector, can be used to express
+		//other messages too
+		void sendMessage(std::vector<std::pair<char, float>> input);
+		//receive messages that have been sent to you [may need to be a different shape]
+		std::vector<std::pair<char, float>> receiveMessage();
+		//break the connection with other devices
+		void endConnection();
+	private:
+		//which device we are
+		int device;
+};//yojimboServer
 
 #endif
