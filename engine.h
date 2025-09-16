@@ -90,7 +90,7 @@ struct playerstate
 //information needed to define the state the game is in
 struct gamestate
 {
-	//the player from device 1 stands left, from device 2 stands right
+	//at round start the player from device 1 stands left, from device 2 stands right
 	gamestate();
 	//the state of both players
 	playerstate player[2];
@@ -108,7 +108,7 @@ class engine
 	public:
 		//return the requested stored gamestate
 		gamestate getGamestate(int requestedState);
-		//set the frontmost gamestate
+		//set the frontmost gamestate to the given gamestate
 		void setGamestate(gamestate state);
 		//check if the game has finished
 		bool getFinished();
@@ -116,7 +116,7 @@ class engine
 		void printGamestate(gamestate state);
 		//load the given input data into the chosen players
 		//input list
-		int initInput(int player, json data);
+		int addInput(int player, json data);
 		//set who is playing on this device. -1 if we are running
 		//in EMULATE mode
 		void setCurrentPlayer(int player);
@@ -158,7 +158,7 @@ class engine
 		//tick all movement caused by forces on players, if a player hits
 		//the ground this way reset all of their combo values and set them
 		//actionable again. check which player should be mirrored and move
-		//players out of eachother if movement caused them to take in the
+		//players out of eachother if movement caused them to take up the
 		//same space
 		void tickMovement();
 		//check if any action currently has an active hitbox, if so check

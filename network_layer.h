@@ -9,14 +9,19 @@
 
 #include <vector>
 #include <utility>
-#include "alpaca/alpaca.h" 
+#include "nlohmann-json/json.hpp"
 
-class networkingLayer
+struct JsonMessage : public Message
+{
+	
+}
+
+class networkLayer
 {
 	public:
 		//initialize the device value to tell the networking layer which device
 		//it is, does not need to be overwritten necessarily
-		networkingLayer(int thisDevice);
+		networkingLayer(int thisDevice){device = thisDevice;};
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
 		virtual bool startConnection() = 0;
@@ -32,7 +37,7 @@ class networkingLayer
 		int device;
 };//networkingLayer
 
-class serverLayer: public networkingLayer
+class serverLayer: public virtual networkLayer
 {
 	public:
 		//have the server device send the start of match signal
@@ -41,7 +46,7 @@ class serverLayer: public networkingLayer
 		virtual void endMatch() = 0;
 };//serverlayer
 
-class yojimboLayer: public networkingLayer
+class yojimboLayer: public virtual networkLayer
 {
 	public:
 		//start the connection with the other device, once returned with True 
@@ -59,7 +64,7 @@ class yojimboLayer: public networkingLayer
 		int device;
 };//yojimboLayer
 
-class yojimboServer: public serverLayer
+class yojimboServer: public virtual serverLayer
 {
 	public:
 		//start the connection with the other device, once returned with True 

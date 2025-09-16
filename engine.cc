@@ -29,13 +29,12 @@ playerstate::playerstate(int player)
 {
 	health = 400;
 	comboCount = 0;
+	position[1] = 0;
 	if(player == 1)
 	{
 		position[0] = 0;
-		position[1] = 0;
 	} else {
 		position[0] = 300;
-		position[1] = 0;
 	}//else
 	directionalForce[0] = 0;
 	directionalForce[1] = 0;
@@ -46,12 +45,7 @@ playerstate::playerstate(int player)
 	inactionable = false;
 	hasHit = false;
 	hasBlocked = false;
-	if(player == 1)
-	{
-		mirror = false;
-	} else {
-		mirror = true;
-	}//else
+	mirror = !player;
 }//playerstate
 
 gamestate::gamestate()
@@ -102,7 +96,7 @@ void engine::printGamestate(gamestate state)
 	std::cout << std::endl;
 }//printGamestate
 
-int engine::initInput(int player, json data)
+int engine::addInput(int player, json data)
 {
 	for(int i = 0; i < data.size(); i++)
 	{
