@@ -11,6 +11,7 @@
 #include "nlohmann-json/json.hpp"
 #include "yojimbo/include/yojimbo.h"
 #include "engine.h"
+#include "network_layer.h"
 
 using json = nlohmann::json;
 
@@ -66,8 +67,17 @@ int main(int argc, char * argv[])
 
 	if(exec_mode == "SERVER"){
 		InitializeYojimbo();
-		yojimbo::Server(yojimbo::GetDefaultAllocator(), 0, yojimbo::Address(argv[3]), 
-						yojimbo::ClientServerConfig() ) serverInstance;
+		yojimboAdapter adapter;
+		yojimbo::ClientServerConfig config;
+
+		yojimbo::Server serverInstance(
+			yojimbo::GetDefaultAllocator(),
+			0,
+			yojimbo::Address(argv[3]),
+			config,
+			adapter,
+			0
+		);
 		return 0;
 	} else {
 		engine gameEngine;
@@ -79,17 +89,17 @@ int main(int argc, char * argv[])
 
 		if(exec_mode == "EMULATE")
 		{
-			gameEngine.initInput(1, data);
+			gameEngine.addInput(1, data);
 			std::ifstream f2(argv[3]);
 			data = json::parse(f2);
-			if(gameEngine.initInput(2, data) == -1)
+			if(gameEngine.addInput(2, data) == -1)
 				return -1;
 			gameEngine.setCurrentPlayer(-1);
 			gameLoop(gameEngine);
 		} else if(exec_mode == "SIMULATE")
 		{
 			int currentPlayer = std::stoi(argv[3]);
-			gameEngine.initInput(currentPlayer, data);
+			gameEngine.addInput(currentPlayer, data);
 			gameEngine.setCurrentPlayer(currentPlayer);
 		} else {
 			std::cerr << "Incorrect program call, call \"BenchyFighters --help\" for instructions" << std::endl;

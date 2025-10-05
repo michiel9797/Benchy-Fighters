@@ -33,3 +33,7 @@
 BenchyFighters
 test_input.json
 out.txt
+yojimbo/netcode/Makefile
+yojimbo/reliable/Makefile
+yojimbo/Makefile
+yojimbo/sodium/Makefile

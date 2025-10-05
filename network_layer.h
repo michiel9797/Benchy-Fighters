@@ -10,18 +10,16 @@
 #include <vector>
 #include <utility>
 #include "nlohmann-json/json.hpp"
-
-struct JsonMessage : public Message
-{
-	
-}
+#include "yojimbo/include/yojimbo.h"
 
 class networkLayer
 {
 	public:
 		//initialize the device value to tell the networking layer which device
 		//it is, does not need to be overwritten necessarily
-		networkingLayer(int thisDevice){device = thisDevice;};
+		networkLayer(int thisDevice){device = thisDevice;};
+		//deconstructor
+		virtual ~networkLayer();
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
 		virtual bool startConnection() = 0;
@@ -45,6 +43,12 @@ class serverLayer: public virtual networkLayer
 		//have the sever device send the end of match signal
 		virtual void endMatch() = 0;
 };//serverlayer
+
+class yojimboAdapter: public virtual yojimbo::Adapter
+{
+	public:
+		yojimbo::MessageFactory * CreateMessageFactory(yojimbo::Allocator & allocator);
+};//yojimboAdapter
 
 class yojimboLayer: public virtual networkLayer
 {

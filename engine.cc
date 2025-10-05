@@ -8,27 +8,35 @@
 #include "engine.h"
 
 playerstate::playerstate()
+	: 	health(0),
+		comboCount(0),
+		position{0, 0},
+		directionalForce{0, 0},
+		gravityScaling(1),
+		damageScaling(0),
+		action(actionList[0]),
+		frame(0),
+		inactionable(false),
+		hasHit(false),
+		hasBlocked(false),
+		mirror(false)
 {
-	health = 0;
-	comboCount = 0;
-	position[0] = 0;
-	position[1] = 0;
-	directionalForce[0] = 0;
-	directionalForce[1] = 0;
-	gravityScaling = 1;
-	damageScaling = 0;
-	action = actionList[0];
-	frame = 0;
-	inactionable = false;
-	hasHit = false;
-	hasBlocked = false;
-	mirror = false;
+	//no further initialization needed
 }//playerstate
 
 playerstate::playerstate(int player)
+	:	health(400),
+		comboCount(0),
+		directionalForce{0, 0},
+		gravityScaling(1),
+		damageScaling(1),
+		action(actionList[0]),
+		frame(0),
+		inactionable(false),
+		hasHit(false),
+		hasBlocked(false),
+		mirror(!player)
 {
-	health = 400;
-	comboCount = 0;
 	position[1] = 0;
 	if(player == 1)
 	{
@@ -36,24 +44,14 @@ playerstate::playerstate(int player)
 	} else {
 		position[0] = 300;
 	}//else
-	directionalForce[0] = 0;
-	directionalForce[1] = 0;
-	gravityScaling = 1;
-	damageScaling = 1;
-	action = actionList[0];
-	frame = 0;
-	inactionable = false;
-	hasHit = false;
-	hasBlocked = false;
-	mirror = !player;
 }//playerstate
 
 gamestate::gamestate()
+	:	player{playerstate(1), playerstate(2)},
+		frame(0),
+		finished(false)
 {
-	player[0] = playerstate(1);
-	player[1] = playerstate(2);
-	frame = 0;
-	finished = false;
+	//no further initialization needed
 }//gamestate
 
 gamestate engine::getGamestate(int requestedState)
@@ -98,7 +96,7 @@ void engine::printGamestate(gamestate state)
 
 int engine::addInput(int player, json data)
 {
-	for(int i = 0; i < data.size(); i++)
+	for(long unsigned int i = 0; i < data.size(); i++)
 	{
 		if(data[i]["Pressed"] != nullptr)
 		{
@@ -661,7 +659,7 @@ void engine::testGravity(int player, int action)
 void engine::printInputBuffer(int player)
 {
 	std::cout << "Player " << player << " processing input list" << std::endl;
-	for(int i = 0; i < statecache.front().processingInput[player-1].size(); i++)
+	for(long unsigned int i = 0; i < statecache.front().processingInput[player-1].size(); i++)
 	{
 		std::cout << "Input: " << statecache.front().processingInput[player-1][i].first
 				  << " Time: " << statecache.front().processingInput[player-1][i].second << std::endl;

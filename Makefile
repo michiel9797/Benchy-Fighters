@@ -1,12 +1,25 @@
-SOURCE	 = action_list.cc engine.cc main.cc
-OBJS	 = action_list.o network_layer.o engine.o main.o
-OUT	 = BenchyFighters
-CC	 = c++
-FLAGS	 = -Wall -Weffc++ -std=c++17 -O2
-INCLUDES = -Iyojimbo/serialize
+SOURCE		 = action_list.cc \
+		   engine.cc \
+		   main.cc \
+		   yojimbo_layer.cc
+OBJS		 = action_list.o \
+		   engine.o \
+		   main.o \
+		   network_layer.o
+OUT	 	 = BenchyFighters
+CC	 	 = c++
+FLAGS		 = -Wall -Weffc++ -std=c++17 -O2 -DYOJIMBO_DEBUG -DYOJIMBO_SERVER=1 -DYOJIMBO_CLIENT=1
+LDLFLAGS 	 = yojimbo/yojimbo.a \
+		   yojimbo/sodium/sodium.a \
+		   yojimbo/netcode/netcode.a \
+		   yojimbo/reliable/reliable.a
+INCLUDES 	 = -Iyojimbo \
+		   -Iyojimbo/source \
+		   -Iyojimbo/include \
+		   -Iyojimbo/serialize 
 
 all: $(OBJS)
-	$(CC) $(OBJS) -o $(OUT) 
+	$(CC) $(OBJS) -o $(OUT) $(LDLFLAGS)
 
 %.o: %.cc
 	$(CC) $(FLAGS) $(INCLUDES) -c $< -o $@
