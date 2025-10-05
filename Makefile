@@ -12,7 +12,8 @@ FLAGS		 = -Wall -Weffc++ -std=c++17 -O2 -DYOJIMBO_DEBUG -DYOJIMBO_SERVER=1 -DYOJ
 LDLFLAGS 	 = yojimbo/yojimbo.a \
 		   yojimbo/sodium/sodium.a \
 		   yojimbo/netcode/netcode.a \
-		   yojimbo/reliable/reliable.a
+		   yojimbo/reliable/reliable.a \
+		   -lsodium
 INCLUDES 	 = -Iyojimbo \
 		   -Iyojimbo/source \
 		   -Iyojimbo/include \

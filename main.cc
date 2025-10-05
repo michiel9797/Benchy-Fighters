@@ -59,7 +59,7 @@ int main(int argc, char * argv[])
 		return 0;
 	}//if
 
-	if(!(((argc == 4 && (exec_mode == "SIMULATE" || exec_mode == "EMULATE"))) || (argc == 2 && (exec_mode == "SERVER"))))
+	if(!(((argc == 4 && (exec_mode == "SIMULATE" || exec_mode == "EMULATE"))) || (argc == 3 && (exec_mode == "SERVER"))))
 	{
 		std::cerr << "Incorrect program call, call \"BenchyFighters --help\" for instructions" << std::endl;
 		return -1;
