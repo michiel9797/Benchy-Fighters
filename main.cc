@@ -59,8 +59,11 @@ int main(int argc, char * argv[])
 		return 0;
 	}//if
 
-	if(!(((argc == 4 && (exec_mode == "SIMULATE" || exec_mode == "EMULATE"))) || (argc == 3 && (exec_mode == "SERVER"))))
+	if(!((argc == 5 && exec_mode == "SIMULATE") || 
+		(argc == 4 && exec_mode == "EMULATE") || 
+		(argc == 3 && (exec_mode == "SERVER"))))
 	{
+		std::cout << argc << std::endl;
 		std::cerr << "Incorrect program call, call \"BenchyFighters --help\" for instructions" << std::endl;
 		return -1;
 	}//if
@@ -69,21 +72,42 @@ int main(int argc, char * argv[])
 		InitializeYojimbo();
 		yojimboAdapter adapter;
 		yojimbo::ClientServerConfig config;
+    	uint8_t privateKey[yojimbo::KeyBytes];
+    	memset( privateKey, 0, yojimbo::KeyBytes );
 
 		yojimbo::Server serverInstance(
 			yojimbo::GetDefaultAllocator(),
-			0,
-			yojimbo::Address(argv[3]),
+			privateKey,
+			yojimbo::Address(argv[2]),
 			config,
 			adapter,
 			0
 		);
+
+		serverInstance.Start(2);
+		
+		char addressString[256];
+		serverInstance.GetAddress().ToString( addressString, sizeof( addressString ) );
+		printf( "server address is %s\n", addressString );
+
+		serverInstance.Stop();
 		return 0;
 	} else {
 		engine gameEngine;
 
 		std::ifstream f(argv[2]);
-		json data = json::parse(f);
+		json data;
+
+		try
+		{
+			data = json::parse(f);
+		}//try
+		catch(...)
+		{
+			std::cout << "Player input provided does not specify a JSON file" << std::endl;
+			return -1;
+		}//catch
+
 		//set the gamestate for the first iteration
 		gameEngine.setFirstFrame();
 
@@ -91,7 +115,15 @@ int main(int argc, char * argv[])
 		{
 			gameEngine.addInput(1, data);
 			std::ifstream f2(argv[3]);
-			data = json::parse(f2);
+			try
+			{
+				data = json::parse(f2);
+			}//try
+			catch(...)
+			{
+				std::cout << "Player 2 input provided does not specify a JSON file" << std::endl;
+				return -1;
+			}//catch
 			if(gameEngine.addInput(2, data) == -1)
 				return -1;
 			gameEngine.setCurrentPlayer(-1);
@@ -101,6 +133,22 @@ int main(int argc, char * argv[])
 			int currentPlayer = std::stoi(argv[3]);
 			gameEngine.addInput(currentPlayer, data);
 			gameEngine.setCurrentPlayer(currentPlayer);
+		
+			InitializeYojimbo();
+			yojimboAdapter adapter;
+			yojimbo::ClientServerConfig config;
+    		yojimbo::Client client( 
+				yojimbo::GetDefaultAllocator(), 
+				yojimbo::Address(argv[4]), 
+				config, 
+				adapter, 
+				0
+			);
+
+			char addressString[256];
+    		client.GetAddress().ToString( addressString, sizeof( addressString ) );
+    		printf( "client address is %s\n", addressString );
+
 		} else {
 			std::cerr << "Incorrect program call, call \"BenchyFighters --help\" for instructions" << std::endl;
 			return -1;
