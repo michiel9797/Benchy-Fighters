@@ -104,7 +104,7 @@ int main(int argc, char * argv[])
 		}//try
 		catch(...)
 		{
-			std::cout << "Player input provided does not specify a JSON file" << std::endl;
+			std::cout << "ERROR: Player input provided does not specify a JSON file" << std::endl;
 			return -1;
 		}//catch
 
@@ -121,16 +121,22 @@ int main(int argc, char * argv[])
 			}//try
 			catch(...)
 			{
-				std::cout << "Player 2 input provided does not specify a JSON file" << std::endl;
+				std::cout << "ERROR: Player 2 input provided does not specify a JSON file" << std::endl;
 				return -1;
 			}//catch
 			if(gameEngine.addInput(2, data) == -1)
 				return -1;
 			gameEngine.setCurrentPlayer(-1);
+			std::cout << "EMULATE START" << std::endl;
 			gameLoop(gameEngine);
 		} else if(exec_mode == "SIMULATE")
 		{
 			int currentPlayer = std::stoi(argv[3]);
+			if(currentPlayer >= 3)
+			{
+				std::cout << "ERROR: The player value exceeds the acceptable limit" << std::endl;
+				return -1;
+			}
 			gameEngine.addInput(currentPlayer, data);
 			gameEngine.setCurrentPlayer(currentPlayer);
 		

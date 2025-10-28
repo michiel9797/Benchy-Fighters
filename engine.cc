@@ -71,25 +71,26 @@ bool engine::getFinished()
 
 void engine::printGamestate(gamestate state)
 {
-	std::cout << "Frame: " << state.frame << std::endl;
-	std::cout << "Finished: " << state.finished << std::endl;
+	std::cout << "Frame: " << state.frame << " ";
+	std::cout << "Finished: " << state.finished << " ";
 	for(int i = 1; i <= 2; i++)
 	{
 		playerstate currentPlayer = state.player[i-1];
-		std::cout << "Player: " << i << std::endl;
-		std::cout << "Health: " << currentPlayer.health << std::endl;
-		std::cout << "Combo count: " << currentPlayer.comboCount << std::endl;
-		std::cout << "Position: " << currentPlayer.position[0] << ", " << currentPlayer.position[1] << std::endl;
+		std::cout << "Player: " << i << " ";
+		std::cout << "Health: " << currentPlayer.health << " ";
+		std::cout << "Combo count: " << currentPlayer.comboCount;
+		std::cout << "Position: " << currentPlayer.position[0] << ", " 
+				  << currentPlayer.position[1] << " ";
 		std::cout << "Directional force: " << currentPlayer.directionalForce[0] << ", " 
-				  << currentPlayer.directionalForce[1] << std::endl;
-		std::cout << "Gravity scaling: " << currentPlayer.gravityScaling << std::endl;
-		std::cout << "Damage scaling: " << currentPlayer.gravityScaling << std::endl;
-		std::cout << "Action damage: " << currentPlayer.action.damage << std::endl;
-		std::cout << "Frame: " << currentPlayer.frame << std::endl;
-		std::cout << "Inactionable: " << currentPlayer.inactionable << std::endl;
-		std::cout << "Has hit: " << currentPlayer.hasHit << std::endl;
-		std::cout << "Has blocked: " << currentPlayer.hasBlocked << std::endl;
-		std::cout << "Mirror: " << currentPlayer.mirror << std::endl;
+				  << currentPlayer.directionalForce[1] << " ";
+		std::cout << "Gravity scaling: " << currentPlayer.gravityScaling << " ";
+		std::cout << "Damage scaling: " << currentPlayer.gravityScaling << " ";
+		std::cout << "Action damage: " << currentPlayer.action.damage << " ";
+		std::cout << "Frame: " << currentPlayer.frame << " ";
+		std::cout << "Inactionable: " << currentPlayer.inactionable << " ";
+		std::cout << "Has hit: " << currentPlayer.hasHit << " ";
+		std::cout << "Has blocked: " << currentPlayer.hasBlocked << " ";
+		std::cout << "Mirror: " << currentPlayer.mirror << " ";
 	}//for
 	std::cout << std::endl;
 }//printGamestate
@@ -401,7 +402,6 @@ void engine::setNextActions()
 				} else if((movementButton == 4 && statecache.front().player[i-1].mirror) ||
 						  (movementButton = 6 && !statecache.front().player[i-1].mirror))
 				{
-					std::cout << "Yo" << std::endl;
 					statecache.front().player[i-1].position[0] -= movementAmount;
 
 				//the movement must be to the right
