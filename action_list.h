@@ -8,6 +8,7 @@
 #define ActionListH
 
 #include <cstddef>
+#include <array>
 #include <tuple>
 #include <map>
 

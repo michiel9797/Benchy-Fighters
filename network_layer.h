@@ -12,6 +12,8 @@
 #include "nlohmann-json/json.hpp"
 #include "yojimbo/include/yojimbo.h"
 
+using json = nlohmann::json;
+
 class networkLayer
 {
 	public:
@@ -43,12 +45,6 @@ class serverLayer: public virtual networkLayer
 		//have the sever device send the end of match signal
 		virtual void endMatch() = 0;
 };//serverlayer
-
-class yojimboAdapter: public virtual yojimbo::Adapter
-{
-	public:
-		yojimbo::MessageFactory * CreateMessageFactory(yojimbo::Allocator & allocator);
-};//yojimboAdapter
 
 class yojimboLayer: public virtual networkLayer
 {
@@ -89,5 +85,36 @@ class yojimboServer: public virtual serverLayer
 		//which device we are
 		int device;
 };//yojimboServer
+
+struct jsonMessage : public yojimbo::Message
+{	
+	json data;
+	
+	jsonMessage();
+
+	template<typename Stream> bool Serialize(Stream & stream);
+
+	YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
+
+};//jsonMessage
+
+enum messageEnum
+{
+	JSON_MESSAGE,
+	NUM_MESSAGE_TYPES
+};//messageEnum
+
+YOJIMBO_MESSAGE_FACTORY_START(YojimboMessageFactory, NUM_MESSAGE_TYPES);
+YOJIMBO_DECLARE_MESSAGE_TYPE( JSON_MESSAGE, jsonMessage);
+YOJIMBO_MESSAGE_FACTORY_FINISH();
+
+class yojimboAdapter: public virtual yojimbo::Adapter
+{
+	public:
+		yojimbo::MessageFactory * CreateMessageFactory(yojimbo::Allocator & allocator)
+		{
+			return YOJIMBO_NEW(allocator, YojimboMessageFactory, allocator);
+		}//CreateMessageFactory
+};//yojimboAdapter
 
 #endif

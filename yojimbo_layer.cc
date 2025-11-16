@@ -9,67 +9,44 @@
 
 using json = nlohmann::json;
 
-struct jsonMessage : public yojimbo::Message
-{	
-	json data;
 	
-	jsonMessage()
-	{
-		data = json::object();
-	}//jsonMessage
+jsonMessage::jsonMessage()
+{
+	data = json::object();
+}//jsonMessage
 
-	template<typename Stream> bool Serialize(Stream & stream)
-	{
-		std::string jsonString;
-
+template<typename Stream> bool jsonMessage::Serialize(Stream & stream)
+{
+	std::string jsonString;
 		if(Stream::IsWriting)                                
-        {                                                       
-          jsonString = data.dump();                 
-        }//if  
+    {                                                       
+      jsonString = data.dump();                 
+    }//if  
 
-		// Allocate max buffer size (change if needed)
-        const int maxJsonStringLength = 1024;
+	// Allocate max buffer size (change if needed)
+    const int maxJsonStringLength = 1024;
 
-        // Allocate a buffer to hold the string
-        char buffer[maxJsonStringLength];
-        memset(buffer, 0, maxJsonStringLength);
+    // Allocate a buffer to hold the string
+    char buffer[maxJsonStringLength];
+    memset(buffer, 0, maxJsonStringLength);
 
-        if (Stream::IsWriting)
-        {
-            size_t length = std::min((int)jsonString.size(), maxJsonStringLength - 1);
-            memcpy(buffer, jsonString.c_str(), length);
-        }//if
+    if (Stream::IsWriting)
+    {
+        size_t length = std::min((int)jsonString.size(), maxJsonStringLength - 1);
+        memcpy(buffer, jsonString.c_str(), length);
+    }//if
 
-        for (int i = 0; i < maxJsonStringLength; ++i)
-        {
-            serialize_bits(stream, buffer[i], 8);
-		}//for
+    for (int i = 0; i < maxJsonStringLength; ++i)
+    {
+        serialize_bits(stream, buffer[i], 8);
+	}//for
                                                
-        if(Stream::IsReading)                                
-        {                                                       
-			data = json::parse(buffer);                             
-		}//if         
-		return true;
-	}//serialize
-
-	YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()
-
-};//jsonMessage
-
-enum messageEnum
-{
-	JSON_MESSAGE,
-	NUM_MESSAGE_TYPES
-};//messageEnum
-
-YOJIMBO_MESSAGE_FACTORY_START(YojimboMessageFactory, NUM_MESSAGE_TYPES);
-YOJIMBO_DECLARE_MESSAGE_TYPE( JSON_MESSAGE, jsonMessage);
-YOJIMBO_MESSAGE_FACTORY_FINISH();
-
-yojimbo::MessageFactory * yojimboAdapter::CreateMessageFactory(yojimbo::Allocator & allocator)
-{
-	return YOJIMBO_NEW(allocator, YojimboMessageFactory, allocator);
-}//CreateMessageFactory
+    if(Stream::IsReading)                                
+    {                                                       
+		data = json::parse(buffer);                             
+	}//if         
+	return true;
+}//serialize
 
 networkLayer::~networkLayer()
 {
