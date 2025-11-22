@@ -14,6 +14,12 @@
 
 using json = nlohmann::json;
 
+//The amount of frames the game engine should be behind simulation time
+const int networkDelay = 5;
+
+// Max message buffer size
+const int maxMessageBuffer = 2048;
+
 class networkLayer
 {
 	public:

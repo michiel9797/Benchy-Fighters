@@ -26,37 +26,128 @@ int MyYojimboPrintf(const char *fmt, ...)
     int result = vprintf(fmt, args);
     va_end(args);
     return result;
-}
+}//MyYojimboPrintf
 
-void gameLoop(engine gameEngine)
+//for grabbing the inputs to send over to the other client
+json extractInputForFrame(json &data, int frame){
+	//make a json object to copy inputs into
+	json copy;
+	//keep count of what line of the copy we're working on
+	long unsigned int copyCount = 0;
+
+	for(long unsigned int i = 0; i < data.size(); i++)
+	{
+		if(data[i]["Pressed"] != nullptr)
+		{
+			std::string timeString = data[i]["Time"];
+			float time = std::stof(timeString) * 1000;
+
+			//if the input exceeds the time limit we're looking in
+			if(time >= frame * timePerFrame)
+				break;
+
+			copy[copyCount] = data[i];
+			copyCount++;
+			data[i]["Pressed"] = nullptr;
+		}//if
+	}//for
+	return copy;
+}//extractInputForFrame
+
+//the main loop for an emulation run
+void localLoop(engine &gameEngine)
 {
-	float counter = 0;
-    int realcounter = 0;
 	gameEngine.manageInputs(1);
 	gameEngine.manageInputs(2);
-	auto frame_interval = std::chrono::milliseconds(timePerFrame);
-    auto start = std::chrono::high_resolution_clock::now();
-    auto current = start;
-	engine storeEngine;
+	auto frame_interval = std::chrono::milliseconds(timePerFrame); 
+    auto current = std::chrono::high_resolution_clock::now();
     while (!gameEngine.getFinished()) {
         gameEngine.printGamestate(gameEngine.framegen());
 		gameEngine.prepStatecache();
 		gameEngine.manageInputs(1);
 		gameEngine.manageInputs(2);
         current += frame_interval;
-        counter += (int)timePerFrame;
-        realcounter += 1;
 		std::this_thread::sleep_until(current);
-    }
-	/* Lines used for testing framerate
-    auto end = std::chrono::high_resolution_clock::now();
-    auto diff = end - start;
-    std::cout << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
-    std::cout << "Counter reached: " << counter << std::endl;
-    std::cout << "Frames counted: " << realcounter << std::endl;
-	*/
-}//gameLoop
+    }//while
+}//localLoop
 
+//the main loop for a client in the simulation run
+void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance, double simTime)
+{
+	auto frame_interval = std::chrono::milliseconds(timePerFrame);
+	auto next_frame_time = std::chrono::high_resolution_clock::now();
+	double sim_interval = timePerFrame / 1000.0;
+	int frame = 0;
+	bool start = false;
+	
+	while(1)
+	{
+		simTime += sim_interval;
+		clientInstance.AdvanceTime(simTime);
+
+		clientInstance.ReceivePackets();
+
+		if (!clientInstance.IsConnected())
+			break;
+
+		jsonMessage *message = (jsonMessage*)clientInstance.ReceiveMessage(0);
+		while (message)
+		{
+				std::cout << "Message:\n" << message->data << std::endl;
+				clientInstance.ReleaseMessage(message);
+				message = (jsonMessage*)clientInstance.ReceiveMessage(0);
+		}//while
+
+		//clientInstance.SendMessage(0, message);
+
+		clientInstance.SendPackets();
+
+		next_frame_time += frame_interval;
+		std::this_thread::sleep_until(next_frame_time);
+	}//while
+}//clientLoop
+
+//the main loop for a server in the simulation run
+void serverLoop(yojimbo::Server &serverInstance)
+{
+	auto frame_interval = std::chrono::milliseconds(timePerFrame);
+	auto next_frame_time = std::chrono::high_resolution_clock::now();
+	double sim_interval = timePerFrame / 1000.0;
+	double simTime = 0.0;
+	//have two clients connected yet
+	bool clientPair = false;
+
+	while (true)
+	{
+		simTime += sim_interval;
+		serverInstance.AdvanceTime(simTime);
+
+		serverInstance.ReceivePackets();
+		
+		//if two clients havent been connected before this yet
+		if(!clientPair)
+		{	//if two clients are now connected
+			if(serverInstance.GetNumConnectedClients() == 2)
+			{
+				jsonMessage *message1 = (jsonMessage*)serverInstance.CreateMessage(0, JSON_MESSAGE);
+				message1->data["Start"] = "true";
+				jsonMessage *message2 = (jsonMessage*)serverInstance.CreateMessage(1, JSON_MESSAGE);
+				message2->data["Start"] = "true";
+				serverInstance.SendMessage(0, 0, message1);
+				serverInstance.SendMessage(1, 0, message2);
+
+				clientPair = true;
+			}//if
+		} else {
+			//tbd
+		}//else
+
+		serverInstance.SendPackets();
+		
+		next_frame_time += frame_interval;
+		std::this_thread::sleep_until(next_frame_time);
+	}//while
+}//serverLoop
 
 int main(int argc, char * argv[])
 {
@@ -115,36 +206,7 @@ int main(int argc, char * argv[])
 		yojimbo_log_level(YOJIMBO_LOG_LEVEL_INFO);
 		yojimbo_set_printf_function(MyYojimboPrintf);
 
-		auto frame_interval = std::chrono::milliseconds(timePerFrame);
-		auto next_frame_time = std::chrono::high_resolution_clock::now();
-		auto start_time = next_frame_time;
-		double time = 0.0;
-
-		while (true)
-		{
-			auto now = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double> total_elapsed = now - start_time;
-			time = total_elapsed.count();
-
-			serverInstance.AdvanceTime(time);
-			serverInstance.ReceivePackets();
-			
-			if(serverInstance.IsClientConnected(0))
-			{
-				jsonMessage *message = (jsonMessage*)serverInstance.ReceiveMessage(0, 0);
-				while (message)
-				{
-					std::cout << "Message:\n" << message->data << std::endl;
-					serverInstance.ReleaseMessage(0, message);
-					message = (jsonMessage*)serverInstance.ReceiveMessage(0, 0);
-				}//while
-			}//if
-
-			serverInstance.SendPackets();
-			
-			next_frame_time += frame_interval;
-			std::this_thread::sleep_until(next_frame_time);
-		}//while
+		serverLoop(serverInstance);
 
 		serverInstance.Stop();
 		return 0;
@@ -160,7 +222,7 @@ int main(int argc, char * argv[])
 		}//try
 		catch(...)
 		{
-			std::cout << "ERROR: Player input provided does not specify a JSON file" << std::endl;
+			std::cerr << "ERROR: Player input provided does not specify a JSON file" << std::endl;
 			return -1;
 		}//catch
 
@@ -177,23 +239,22 @@ int main(int argc, char * argv[])
 			}//try
 			catch(...)
 			{
-				std::cout << "ERROR: Player 2 input provided does not specify a JSON file" << std::endl;
+				std::cerr << "ERROR: Player 2 input provided does not specify a JSON file" << std::endl;
 				return -1;
 			}//catch
-			if(gameEngine.addInput(2, data) == -1)
-				return -1;
+			gameEngine.addInput(2, data);
 			gameEngine.setCurrentPlayer(-1);
+
 			std::cout << "EMULATE START" << std::endl;
-			gameLoop(gameEngine);
+			localLoop(gameEngine);
 		} else if(exec_mode == "SIMULATE")
 		{
 			int currentPlayer = std::stoi(argv[3]);
 			if(currentPlayer >= 3)
 			{
-				std::cout << "ERROR: The player value exceeds the acceptable limit" << std::endl;
+				std::cerr << "ERROR: The player value exceeds the acceptable limit" << std::endl;
 				return -1;
 			}
-			gameEngine.addInput(currentPlayer, data);
 			gameEngine.setCurrentPlayer(currentPlayer);
 		
 			InitializeYojimbo();
@@ -228,20 +289,18 @@ int main(int argc, char * argv[])
 
 			auto frame_interval = std::chrono::milliseconds(timePerFrame);
 			auto next_frame_time = std::chrono::high_resolution_clock::now();
-			auto start_time = next_frame_time;
-			double time = 0.0;
+			double sim_interval = timePerFrame / 1000.0;
+			double simTime = 0.0;
 
-			clientInstance.AdvanceTime(time);
+			clientInstance.AdvanceTime(simTime);
 
 			clientInstance.InsecureConnect(privateKey, 0, serverAddress);
 			
 			while(!clientInstance.IsConnected())
 			{
-				auto now = std::chrono::high_resolution_clock::now();
-				std::chrono::duration<double> total_elapsed = now - start_time;
-				time = total_elapsed.count();
+				simTime += sim_interval;
 
-				clientInstance.AdvanceTime(time);
+				clientInstance.AdvanceTime(simTime);
 
 				clientInstance.SendPackets();
 				clientInstance.ReceivePackets();
@@ -252,41 +311,7 @@ int main(int argc, char * argv[])
 
 			std::cout << "Connected" << std::endl;
 
-			while(1)
-			{
-				auto now = std::chrono::high_resolution_clock::now();
-				std::chrono::duration<double> total_elapsed = now - start_time;
-				time = total_elapsed.count();
-
-				clientInstance.AdvanceTime(time);
-
-				clientInstance.ReceivePackets();
-
-				if (!clientInstance.IsConnected())
-        			break;
-				
-				jsonMessage* yeet = (jsonMessage*) clientInstance.CreateMessage(JSON_MESSAGE);
-
-				uint8_t buffer[1024];
-				yojimbo::WriteStream writeStream(buffer, sizeof(buffer));
-
-				yeet->data["text"] = "Hello, world!";
-				yeet->data["id"] = 42;
-
-				// Serialize the message (write to stream)
-				yeet->Serialize(writeStream);
-
-				// Finish writing and get the number of bytes
-				int bytesWritten = writeStream.GetBytesProcessed();
-				printf("Wrote %d bytes\n", bytesWritten);
-
-				clientInstance.SendMessage(0, yeet);
-
-				clientInstance.SendPackets();
-
-				next_frame_time += frame_interval;
-				std::this_thread::sleep_until(next_frame_time);
-			}//while
+			clientLoop(gameEngine, clientInstance, simTime);
 
 			clientInstance.Disconnect();
 

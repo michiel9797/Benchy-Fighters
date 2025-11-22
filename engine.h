@@ -121,7 +121,6 @@ class engine
 		//in EMULATE mode
 		void setCurrentPlayer(int player);
 		//move inputs between buffers depending on the current frame
-		//returns 1 if no inputs are left in the input list
 		int manageInputs(int player);
 		//initialize the first frame
 		void setFirstFrame();
@@ -201,16 +200,14 @@ class engine
 		bool detectHit(int player);
 		//gamestates are ordered from new to old, so:
 		//0: most recent gamestate
-		//1: gamestate 1 frame ago
+		//1: gamestate after calculating 1 frame ago
 		//...
-		//6: gamestate 6 frames ago
+		//6: gamestate after calculating 6 frames ago
 		std::vector<gamestate> statecache;
 		//a queue of inputs for both players
 		std::queue<std::pair<char, float>> inputList[2];
 		//the player that is playing on this device
 		int currentPlayer;
-
-
 };//engine
 
 #endif

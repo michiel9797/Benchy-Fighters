@@ -108,11 +108,6 @@ int engine::addInput(int player, json data)
 			inputList[player-1].push(std::make_pair(button, time));
 		}//if
 	}//for
-	if(inputList[player-1].size() < 1)
-	{
-		std::cerr << "No input found" << std::endl;
-		return -1;
-	}
 	return 0;
 }//initInput
 
@@ -141,9 +136,6 @@ int engine::manageInputs(int player)
 		inputList[player-1].pop();
 	}//while
 
-	if(inputList[player-1].empty())
-		return 1;
-	
 	return 0;
 }//manageInputs
 

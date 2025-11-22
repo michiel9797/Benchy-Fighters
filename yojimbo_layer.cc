@@ -18,35 +18,38 @@ jsonMessage::jsonMessage()
 template<typename Stream> bool jsonMessage::Serialize(Stream & stream)
 {
 	std::string jsonString;
-		if(Stream::IsWriting)                                
-    {                                                       
-      jsonString = data.dump();                 
-    }//if  
 
-	// Allocate max buffer size (change if needed)
-    const int maxJsonStringLength = 1024;
+	if(Stream::IsWriting)                                
+  {                                                       
+    jsonString = data.dump();                 
+  }//if  
 
-    // Allocate a buffer to hold the string
-    char buffer[maxJsonStringLength];
-    memset(buffer, 0, maxJsonStringLength);
+  // Serialize the length
+  uint16_t length = jsonString.size();
+  serialize_int(stream, length, 0, maxMessageBuffer);
 
-    if (Stream::IsWriting)
-    {
-        size_t length = std::min((int)jsonString.size(), maxJsonStringLength - 1);
-        memcpy(buffer, jsonString.c_str(), length);
-    }//if
+  // Drop if the message is too long
+  if (length > maxMessageBuffer)
+      return false;
 
-    for (int i = 0; i < maxJsonStringLength; ++i)
-    {
-        serialize_bits(stream, buffer[i], 8);
-	}//for
-                                               
-    if(Stream::IsReading)                                
-    {                                                       
-		data = json::parse(buffer);                             
+  if (Stream::IsWriting)
+  {
+    for (int i = 0; i < length; ++i)
+        serialize_bits(stream, jsonString[i], 8);
+
+  }else{ //reading  
+    std::string readString;
+    readString.resize(length);
+
+    for (int i = 0; i < length; ++i)
+        serialize_bits(stream, readString[i], 8);
+
+    data = json::parse(readString);                             
 	}//if         
 	return true;
 }//serialize
+
+
 
 networkLayer::~networkLayer()
 {
