@@ -148,12 +148,13 @@ void engine::setFirstFrame()
 
 void engine::prepStatecache()
 {
-	if(statecache.size() >= 7)
+	//copy the current frame and add it at the begining, pushing all older frames back
+	statecache.insert(statecache.begin(), statecache[0]);
+
+	//if we are storing more then 7 frames, remove the oldest one
+	if(statecache.size() > 7)
 	{
-		for(int i = 6; i > 0; i--)
-		{
-			statecache[i] = statecache[i-1];
-		}//for
+		statecache.erase(statecache.end());
 	}//if
 }//prepStatecache
 
@@ -167,6 +168,15 @@ gamestate engine::framegen()
 	statecache.front().finished = gameOver();
 	return statecache.front();
 }//framegen
+
+//roll the gamestate back by the amount of frames given
+void engine::rollback(int rollbackFrames)
+{
+	for(int i = 0; i < rollbackFrames; i++)
+	{
+		statecache.erase(statecache.begin());
+	}//for
+}//rollback
 
 void engine::setPlayerInactionable(int player, bool set)
 {

@@ -130,6 +130,8 @@ class engine
 		//generate and return the next frame given the current first frame
 		//and the input lists
 		gamestate framegen();
+		//roll the gamestate back by the amount of frames given
+		void rollback(int rollbackFrames);
 
 		//test functions
 		void setAction(int player, int action);
@@ -206,7 +208,7 @@ class engine
 		std::vector<gamestate> statecache;
 		//a queue of inputs for both players
 		std::queue<std::pair<char, float>> inputList[2];
-		//the player that is playing on this device
+		//the player that is playing on this device, 1 or 2
 		int currentPlayer;
 };//engine
 

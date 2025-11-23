@@ -28,6 +28,20 @@ int MyYojimboPrintf(const char *fmt, ...)
     return result;
 }//MyYojimboPrintf
 
+//for setting the input times correctly in predictions
+json setInputAhead(json data, int frameIncreaseAmount)
+{
+	for(long unsigned int i = 0; i < data.size(); i++)
+	{
+		std::string timeString = data[i]["Time"];
+		float time = std::stof(timeString) * 1000;
+		time += frameIncreaseAmount * timePerFrame;
+		timeString = std::to_string(time);
+		data[i]["Time"] = timeString;
+	}//for
+	return data;
+}//setInputAhead
+
 //for grabbing the inputs to send over to the other client
 json extractInputForFrame(json &data, int frame){
 	//make a json object to copy inputs into
@@ -51,6 +65,13 @@ json extractInputForFrame(json &data, int frame){
 			data[i]["Pressed"] = nullptr;
 		}//if
 	}//for
+
+	//if we have no inputs to give
+	if(copy[0]["Pressed"] == nullptr)
+	{	//load in a dummy input
+		copy[0]["Pressed"] == "empty";
+	}
+
 	return copy;
 }//extractInputForFrame
 
@@ -72,15 +93,26 @@ void localLoop(engine &gameEngine)
 }//localLoop
 
 //the main loop for a client in the simulation run
-void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance, double simTime)
+void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance, 
+				double simTime, int currentPlayer, json currentPlayerInput)
 {
+	//timing logic
 	auto frame_interval = std::chrono::milliseconds(timePerFrame);
 	auto next_frame_time = std::chrono::high_resolution_clock::now();
 	double sim_interval = timePerFrame / 1000.0;
-	int frame = 0;
+	//the frame the game should be in, this behind the client loop 
+	//an amount of frames equal to the network delay
+	int gameFrame = -(networkDelay);
+	//a copy of the last input we've received, used for predictions
+	json lastInputReceived;
+	//the last time we've received an input
+	int frameLastInputReceived = 0;
+	//the amount of frames we need to roll back and resimulate
+	int resimulate = 0;
+	//if the match has started
 	bool start = false;
 	
-	while(1)
+	while(!gameEngine.getFinished())
 	{
 		simTime += sim_interval;
 		clientInstance.AdvanceTime(simTime);
@@ -91,17 +123,91 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance, double simT
 			break;
 
 		jsonMessage *message = (jsonMessage*)clientInstance.ReceiveMessage(0);
-		while (message)
-		{
-				std::cout << "Message:\n" << message->data << std::endl;
-				clientInstance.ReleaseMessage(message);
-				message = (jsonMessage*)clientInstance.ReceiveMessage(0);
-		}//while
 
-		//clientInstance.SendMessage(0, message);
+		//if we haven't had the start signal
+		if(!start)
+		{	//while we have messages
+			while(message)	
+			{	//if the message is the start signal
+				if(message->data[0]["Start"] == "true")
+				{
+					start = true;
+				}//if
+				message = (jsonMessage*)clientInstance.ReceiveMessage(0);
+			}//while
+		//if we've had the start signal
+		}else{
+			//if we get a message
+			if(message)
+			{	//if we're receiving messages we should have received earlier
+				if(frameLastInputReceived < gameFrame)
+				{	//set the amount of frames to resimulate later
+					resimulate = gameFrame - frameLastInputReceived;
+					//roll the game back by up to 7 frames
+					gameEngine.rollback(std::min(resimulate, 7));
+				}//if
+				//while we still have messages
+				while(message)
+				{	//if the message isn't empty
+					if(!(message->data[0]["Pressed"]), "empty")
+					{	//process all message data for the correct player
+						if(currentPlayer != 1)
+						{
+							gameEngine.addInput(2, message->data);
+						}else{
+							gameEngine.addInput(1, message->data);
+						}//else
+					}//if
+					lastInputReceived = message->data;
+					message = (jsonMessage*)clientInstance.ReceiveMessage(0);
+				}//while
+				frameLastInputReceived = gameFrame + networkDelay;
+			}//if
+
+			//if we've waited out the network delay
+			if(gameFrame >= 0)
+			{
+				//if we haven't received the inputs from the opponent we need for this frame
+				if(frameLastInputReceived < gameFrame)
+				{
+					//create a copy of the last input and set it to this frame
+					json prediction = setInputAhead(lastInputReceived, gameFrame - frameLastInputReceived);
+					if(currentPlayer != 1)
+					{
+						gameEngine.addInput(2, prediction);
+					}else{
+						gameEngine.addInput(1, prediction);
+					}//else
+				}//if
+
+				//resimulate if we need to
+				for(int i = 0; i < resimulate; i++)
+				{
+					gameEngine.manageInputs(1);
+					gameEngine.manageInputs(2);
+					//do not print the resumulated frames
+					gameEngine.framegen();
+					gameEngine.prepStatecache();
+				}//for
+
+				//advance game state regularly
+				gameEngine.manageInputs(1);
+				gameEngine.manageInputs(2);
+				gameEngine.printGamestate(gameEngine.framegen());
+				gameEngine.prepStatecache();
+			}//if
+
+			//make a new message
+			message = (jsonMessage*)clientInstance.CreateMessage(JSON_MESSAGE);
+			//insert the required input data
+			message->data = extractInputForFrame(currentPlayerInput, gameFrame + networkDelay);
+			//send the message
+			clientInstance.SendMessage(0, message);
+		}//else
 
 		clientInstance.SendPackets();
 
+		gameFrame++;
 		next_frame_time += frame_interval;
 		std::this_thread::sleep_until(next_frame_time);
 	}//while
@@ -128,7 +234,7 @@ void serverLoop(yojimbo::Server &serverInstance)
 		if(!clientPair)
 		{	//if two clients are now connected
 			if(serverInstance.GetNumConnectedClients() == 2)
-			{
+			{	//generate and send the start message
 				jsonMessage *message1 = (jsonMessage*)serverInstance.CreateMessage(0, JSON_MESSAGE);
 				message1->data["Start"] = "true";
 				jsonMessage *message2 = (jsonMessage*)serverInstance.CreateMessage(1, JSON_MESSAGE);
@@ -139,7 +245,11 @@ void serverLoop(yojimbo::Server &serverInstance)
 				clientPair = true;
 			}//if
 		} else {
-			//tbd
+			//exchange messages between clients
+			jsonMessage *message1 = (jsonMessage*)serverInstance.ReceiveMessage(0, 0);
+			jsonMessage *message2 = (jsonMessage*)serverInstance.ReceiveMessage(1, 0);
+			serverInstance.SendMessage(1, 0, message1);
+			serverInstance.SendMessage(0, 0, message2);
 		}//else
 
 		serverInstance.SendPackets();
@@ -203,8 +313,8 @@ int main(int argc, char * argv[])
 		serverInstance.GetAddress().ToString( addressString, sizeof( addressString ) );
 		printf( "server address is %s\n", addressString );
 
-		yojimbo_log_level(YOJIMBO_LOG_LEVEL_INFO);
-		yojimbo_set_printf_function(MyYojimboPrintf);
+		//yojimbo_log_level(YOJIMBO_LOG_LEVEL_DEBUG);
+		//yojimbo_set_printf_function(MyYojimboPrintf);
 
 		serverLoop(serverInstance);
 
@@ -256,6 +366,7 @@ int main(int argc, char * argv[])
 				return -1;
 			}
 			gameEngine.setCurrentPlayer(currentPlayer);
+			gameEngine.addInput(currentPlayer, data);
 		
 			InitializeYojimbo();
 			yojimboAdapter adapter;
@@ -280,12 +391,12 @@ int main(int argc, char * argv[])
 			
     		std::cout << "client address is \n" << addressString << std::endl;
 
-			yojimbo_log_level(YOJIMBO_LOG_LEVEL_DEBUG);
-			yojimbo_set_printf_function(MyYojimboPrintf);
+			//yojimbo_log_level(YOJIMBO_LOG_LEVEL_DEBUG);
+			//yojimbo_set_printf_function(MyYojimboPrintf);
 
 			yojimbo::Address serverAddress(argv[5]);
 			uint8_t privateKey[yojimbo::KeyBytes];
-   			memset(privateKey, 0, yojimbo::KeyBytes);
+			memset(privateKey, 0, yojimbo::KeyBytes);
 
 			auto frame_interval = std::chrono::milliseconds(timePerFrame);
 			auto next_frame_time = std::chrono::high_resolution_clock::now();
@@ -294,7 +405,7 @@ int main(int argc, char * argv[])
 
 			clientInstance.AdvanceTime(simTime);
 
-			clientInstance.InsecureConnect(privateKey, 0, serverAddress);
+			clientInstance.InsecureConnect(privateKey, currentPlayer, serverAddress);
 			
 			while(!clientInstance.IsConnected())
 			{
@@ -311,7 +422,7 @@ int main(int argc, char * argv[])
 
 			std::cout << "Connected" << std::endl;
 
-			clientLoop(gameEngine, clientInstance, simTime);
+			clientLoop(gameEngine, clientInstance, simTime, currentPlayer, data);
 
 			clientInstance.Disconnect();
 
