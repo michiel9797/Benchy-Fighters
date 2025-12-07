@@ -78,7 +78,7 @@ void engine::printGamestate(gamestate state)
 		playerstate currentPlayer = state.player[i-1];
 		std::cout << "Player: " << i << " ";
 		std::cout << "Health: " << currentPlayer.health << " ";
-		std::cout << "Combo count: " << currentPlayer.comboCount;
+		std::cout << "Combo count: " << currentPlayer.comboCount << " ";
 		std::cout << "Position: " << currentPlayer.position[0] << ", " 
 				  << currentPlayer.position[1] << " ";
 		std::cout << "Directional force: " << currentPlayer.directionalForce[0] << ", " 
@@ -97,17 +97,29 @@ void engine::printGamestate(gamestate state)
 
 int engine::addInput(int player, json data)
 {
-	for(long unsigned int i = 0; i < data.size(); i++)
+	if(data.is_array())
 	{
-		if(data[i]["Pressed"] != nullptr)
+		for(long unsigned int i = 0; i < data.size(); i++)
 		{
-			std::string buttonString = data[i]["Pressed"];
+			if(data[i]["Pressed"] != nullptr)
+			{
+				std::string buttonString = data[i]["Pressed"];
+				char button = buttonString[1];
+				std::string timeString = data[i]["Time"];
+				float time = std::stof(timeString) * 1000;
+				inputList[player-1].push(std::make_pair(button, time));
+			}//if
+		}//for
+	}else{
+		if(data["Pressed"] != nullptr)
+		{
+			std::string buttonString = data["Pressed"];
 			char button = buttonString[1];
-			std::string timeString = data[i]["Time"];
+			std::string timeString = data["Time"];
 			float time = std::stof(timeString) * 1000;
 			inputList[player-1].push(std::make_pair(button, time));
 		}//if
-	}//for
+	}//else
 	return 0;
 }//initInput
 
