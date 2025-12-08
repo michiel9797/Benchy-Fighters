@@ -3,7 +3,7 @@
 The game lacks both a UI and realtime input reading, taking all the inputs for a match in the form of a json file.
 
 For further instructions on how to use this program, run the following command after compilation:
-```
+```bash
 benchyFighters --help
 ```
 
