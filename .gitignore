@@ -38,3 +38,4 @@ yojimbo/reliable/Makefile
 yojimbo/Makefile
 yojimbo/sodium/Makefile
 settings
+Makefile
