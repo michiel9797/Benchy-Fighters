@@ -14,6 +14,5 @@ The libraries required to compile and run the following sublibraries are require
 - [nlohmann-json](https://github.com/nlohmann/json)
 - [yojimbo](https://github.com/mas-bandwidth/yojimbo)
 
-Additionally, the following libraries are also required to compile and run this program:
-- libsfml-dev
-- libsodium-dev
+Additionally, the following library is also required to compile and run this program:
+- [libsfml-dev](https://www.sfml-dev.org)
