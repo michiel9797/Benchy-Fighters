@@ -7,6 +7,9 @@ For further instructions on how to use this program, run the following command a
 benchyFighters --help
 ```
 
+You can find a repository with Makefiles to compile this project here:
+- https://github.com/michiel9797/Michiels-Makefiles/tree/master
+
 A program to create compatible input files can be found here:
 - [timestampedKeylogger](https://github.com/michiel9797/timestampedKeylogger)
 
