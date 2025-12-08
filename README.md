@@ -2,6 +2,9 @@
 **Benchy fighters** is a simple generic 2D fighting game made for the purpose of being used in benchmarks.
 The game lacks both a UI and realtime input reading, taking all the inputs for a match in the form of a json file.
 
+You can find a repository with Makefiles to compile this project here:
+- https://github.com/michiel9797/Michiels-Makefiles/tree/master
+
 For further instructions on how to use this program, run the following command after compilation:
 ```bash
 benchyFighters --help
