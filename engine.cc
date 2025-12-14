@@ -407,22 +407,41 @@ void engine::setNextActions()
 					continue;
 
 				//if the movement is a jump
-				} else if(movementButton == 8) 
-				{
-					statecache.front().player[i-1].directionalForce[1] += jumpForce;
+				} else if(movementButton == 7 || movementButton == 8 || movementButton == 9) 
+				{	//and the player isn't in the air
+					if(statecache.front().player[i-1].position[1] == 0)
+					{
+						statecache.front().player[i-1].directionalForce[1] += jumpForce;
+						
+						//if the player wants to jump to the left
+						if((movementButton == 7 && statecache.front().player[i-1].mirror) ||
+						   (movementButton == 9 && !statecache.front().player[i-1].mirror))
+						{
+							statecache.front().player[i-1].directionalForce[0] -= jumpSideForce;
+						
+						//if the jump wasn't straight up, it must be to the right 
+						}else if(movementButton != 8)
+						{
+							statecache.front().player[i-1].directionalForce[0] += jumpSideForce;
+						}//if
+					}//if
+					
 					continue;
+				
+				//if the player is not in the air
+				} else if(statecache.front().player[i-1].position[1] == 0)
+				{	//if the player wants to move left
+					if((movementButton == 4 && statecache.front().player[i-1].mirror) ||
+					   (movementButton = 6 && !statecache.front().player[i-1].mirror))
+					{
+						statecache.front().player[i-1].position[0] -= movementAmount;
 
-				//if the player wants to move left
-				} else if((movementButton == 4 && statecache.front().player[i-1].mirror) ||
-						  (movementButton = 6 && !statecache.front().player[i-1].mirror))
-				{
-					statecache.front().player[i-1].position[0] -= movementAmount;
-
-				//the movement must be to the right
-				} else {
-					statecache.front().player[i-1].position[0] += movementAmount;
-				}
-				//in case the player moved left or right, resolve any possible collisions
+					//the movement must be to the right
+					} else {
+						statecache.front().player[i-1].position[0] += movementAmount;
+					}//else
+				}//if
+				//resolve any possible collisions
 				detectCollision();
 				continue;
 			

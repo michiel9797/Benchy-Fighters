@@ -50,14 +50,23 @@ bool compareInputJson(json data1, json data2)
 //for setting the input times correctly in predictions
 json setInputAhead(json data, int frameIncreaseAmount)
 {
-	for(long unsigned int i = 0; i < data.size(); i++)
+	if(data.is_array())
 	{
-		std::string timeString = data[i]["Time"];
-		float time = std::stof(timeString) * 1000;
-		time += frameIncreaseAmount * timePerFrame;
+		for(long unsigned int i = 0; i < data.size(); i++)
+		{
+			std::string timeString = data[i]["Time"];
+			float time = std::stof(timeString);
+			time += frameIncreaseAmount * (timePerFrame/1000);
+			timeString = std::to_string(time);
+			data[i]["Time"] = timeString;
+		}//for
+	}else{
+		std::string timeString = data["Time"];
+		float time = std::stof(timeString);
+		time += frameIncreaseAmount * (timePerFrame/1000);
 		timeString = std::to_string(time);
-		data[i]["Time"] = timeString;
-	}//for
+		data["Time"] = timeString;
+	}//else
 	return data;
 }//setInputAhead
 
@@ -118,7 +127,7 @@ void localLoop(engine &gameEngine)
 {
 	gameEngine.manageInputs(1);
 	gameEngine.manageInputs(2);
-	auto frame_interval = std::chrono::milliseconds(timePerFrame); 
+	auto frame_interval = std::chrono::milliseconds(int(timePerFrame)); 
     auto current = std::chrono::high_resolution_clock::now();
     while (!gameEngine.getFinished()) {
         gameEngine.printGamestate(gameEngine.framegen());
@@ -135,7 +144,7 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 				double simTime, int currentPlayer, json currentPlayerInput)
 {
 	//timing logic
-	auto frame_interval = std::chrono::milliseconds(timePerFrame);
+	auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
 	auto next_frame_time = std::chrono::high_resolution_clock::now();
 	double sim_interval = timePerFrame / 1000.0;
 	//the frame the game should be in, this is behind the client loop 
@@ -195,10 +204,12 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 						//for every correct prediction in order, reduce the amount of frames
 						//that need resimulation and throw away the corresponding message
 						resimulate--;
+						lastFrameMessageReceived++;
 						message = (jsonMessage*)clientInstance.ReceiveMessage(0);
 					}//while
 					//roll the game back by up to 7 frames
-					gameEngine.rollback(std::min(resimulate, 7));
+					resimulate = std::min(resimulate, 7);
+					gameEngine.rollback(resimulate);
 				}//if	
 				*/
 				//while we still have messages
@@ -227,28 +238,48 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 						}//if
 					}//else
 					lastInputReceived = message->data;
+					frameLastInputReceived++;
 					message = (jsonMessage*)clientInstance.ReceiveMessage(0);
 				}//while
-				frameLastInputReceived = gameFrame + networkDelay;
 			}//if
 
 			//if we've waited out the network delay
 			if(gameFrame >= 0)
 			{
-				/*
 				//if we haven't received the inputs from the opponent we need for this frame
 				if(frameLastInputReceived < gameFrame)
 				{
-					//create a copy of the last input and set it to this frame
-					json prediction = setInputAhead(lastInputReceived, gameFrame - frameLastInputReceived);
-					if(currentPlayer != 1)
+					int sendAhead = gameFrame - frameLastInputReceived;
+					if(lastInputReceived.is_array())
 					{
-						gameEngine.addInput(2, prediction);
+						for(unsigned long i = 0; i < lastInputReceived.size(); i++)
+						{
+							if(lastInputReceived[i]["Pressed"] != "empty")
+							{
+								json prediction = setInputAhead(lastInputReceived, sendAhead);
+								if(currentPlayer != 1)
+								{
+									gameEngine.addInput(2, prediction);
+								}else{
+									gameEngine.addInput(1, prediction);
+								}//else
+							}//if
+						}//for
 					}else{
-						gameEngine.addInput(1, prediction);
+						if(lastInputReceived["Pressed"] != "empty")
+						{	//create a copy of the last input and set it to this frame
+							json prediction = setInputAhead(lastInputReceived, sendAhead);
+							if(currentPlayer != 1)
+							{
+								gameEngine.addInput(2, prediction);
+							}else{
+								gameEngine.addInput(1, prediction);
+							}//else
+						}//else
 					}//else
 				}//if
 
+				
 				//resimulate if we need to
 				for(int i = 0; i < resimulate; i++)
 				{
@@ -257,7 +288,9 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 					//do not print the resumulated frames
 					gameEngine.framegen();
 					gameEngine.prepStatecache();
-				}//for*/
+				}//for
+
+				resimulate = 0;
 
 				//advance game state regularly
 				gameEngine.manageInputs(1);
@@ -287,7 +320,7 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 //the main loop for a server in the simulation run
 void serverLoop(yojimbo::Server &serverInstance)
 {
-	auto frame_interval = std::chrono::milliseconds(timePerFrame);
+	auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
 	auto next_frame_time = std::chrono::high_resolution_clock::now();
 	double sim_interval = timePerFrame / 1000.0;
 	double simTime = 0.0;
@@ -482,7 +515,7 @@ int main(int argc, char * argv[])
 			uint8_t privateKey[yojimbo::KeyBytes];
 			memset(privateKey, 0, yojimbo::KeyBytes);
 
-			auto frame_interval = std::chrono::milliseconds(timePerFrame);
+			auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
 			auto next_frame_time = std::chrono::high_resolution_clock::now();
 			double sim_interval = timePerFrame / 1000.0;
 			double simTime = 0.0;
