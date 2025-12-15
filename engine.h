@@ -70,6 +70,8 @@ struct playerstate
 	//the direction a player is going in and the force by which they are
 	//moving in said direction
 	float directionalForce[2];
+	//where a player is walking in if applicable
+	int walk;
 	//the strenght of gravity affecting the player
 	float gravityScaling;
 	//by how much to reduce incoming damage
@@ -98,7 +100,7 @@ struct gamestate
 	//the current frame the match is on 
 	int frame;
 	//a vector of inputs to process for both players
-	std::vector<std::pair<char, float>> processingInput[2];
+	std::vector<std::pair<char, int>> processingInput[2];
 	//if the current frame has finished calculations
 	bool finished;
 };//gamestate
@@ -208,7 +210,7 @@ class engine
 		//6: gamestate after calculating 6 frames ago
 		std::vector<gamestate> statecache;
 		//a queue of inputs for both players
-		std::queue<std::pair<char, float>> inputList[2];
+		std::queue<std::pair<char, int>> inputList[2];
 		//the player that is playing on this device, 1 or 2
 		int currentPlayer;
 };//engine

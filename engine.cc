@@ -12,6 +12,7 @@ playerstate::playerstate()
 		comboCount(0),
 		position{0, 0},
 		directionalForce{0, 0},
+		walk(0),
 		gravityScaling(1),
 		damageScaling(0),
 		action(actionList[0]),
@@ -28,6 +29,7 @@ playerstate::playerstate(int player)
 	:	health(400),
 		comboCount(0),
 		directionalForce{0, 0},
+		walk(0),
 		gravityScaling(1),
 		damageScaling(1),
 		action(actionList[0]),
@@ -83,6 +85,7 @@ void engine::printGamestate(gamestate state)
 				  << currentPlayer.position[1] << " ";
 		std::cout << "Directional force: " << currentPlayer.directionalForce[0] << ", " 
 				  << currentPlayer.directionalForce[1] << " ";
+		std::cout << "Walk: " << currentPlayer.walk << " ";
 		std::cout << "Gravity scaling: " << currentPlayer.gravityScaling << " ";
 		std::cout << "Damage scaling: " << currentPlayer.gravityScaling << " ";
 		std::cout << "Action damage: " << currentPlayer.action.damage << " ";
@@ -107,7 +110,8 @@ int engine::addInput(int player, json data)
 				char button = buttonString[1];
 				std::string timeString = data[i]["Time"];
 				float time = std::stof(timeString) * 1000;
-				inputList[player-1].push(std::make_pair(button, time));
+				int inputFrame = (int)(time / timePerFrame);
+				inputList[player-1].push(std::make_pair(button, inputFrame));
 			}//if
 		}//for
 	}else{
@@ -117,7 +121,8 @@ int engine::addInput(int player, json data)
 			char button = buttonString[1];
 			std::string timeString = data["Time"];
 			float time = std::stof(timeString) * 1000;
-			inputList[player-1].push(std::make_pair(button, time));
+			int inputFrame = (int)(time / timePerFrame);
+			inputList[player-1].push(std::make_pair(button, inputFrame));
 		}//if
 	}//else
 	return 0;
@@ -133,16 +138,16 @@ int engine::manageInputs(int player)
 	//remove all the inputs from the vector which have passed
 	//the buffers frame/time limit if there are inputs in the buffer
 	while(!statecache.front().processingInput[player-1].empty() && 
-		  statecache.front().processingInput[player-1].back().second < 
-		  (((statecache.front().frame + 1) * timePerFrame) - (framesInBuffer * timePerFrame)))
+		  (statecache.front().processingInput[player-1].front().second) < 
+		  (statecache.front().frame - framesInBuffer))
 	{
-		statecache.front().processingInput[player-1].erase(statecache.front().processingInput[player-1].end());
+		statecache.front().processingInput[player-1].erase(statecache.front().processingInput[player-1].begin());
 	}//while
 
 	//add all the inputs from the input queue that have entered
 	//the buffers frame/time limit if there are inputs in the input queue
 	while(!inputList[player-1].empty() && 
-		  inputList[player-1].front().second < (statecache.front().frame + 1) * timePerFrame)
+		  inputList[player-1].front().second < statecache.front().frame)
 	{
 		statecache.front().processingInput[player-1].push_back(inputList[player-1].front());
 		inputList[player-1].pop();
@@ -153,7 +158,7 @@ int engine::manageInputs(int player)
 
 void engine::setFirstFrame()
 {
-	statecache.reserve(7);
+	statecache.reserve(9);
 	gamestate firstState;
 	statecache.insert(statecache.begin(), firstState);
 }//setFirstFrame
@@ -163,10 +168,10 @@ void engine::prepStatecache()
 	//copy the current frame and add it at the begining, pushing all older frames back
 	statecache.insert(statecache.begin(), statecache[0]);
 
-	//if we are storing more then 7 frames, remove the oldest one
-	if(statecache.size() > 7)
+	//if we are storing more then 8 frames, remove the oldest one
+	if(statecache.size() > 8)
 	{
-		statecache.erase(statecache.end());
+		statecache.pop_back();
 	}//if
 }//prepStatecache
 
@@ -186,6 +191,7 @@ void engine::rollback(int rollbackFrames)
 {
 	for(int i = 0; i < rollbackFrames; i++)
 	{
+		std::cerr << "Rolling " << i+1 << std::endl;
 		statecache.erase(statecache.begin());
 	}//for
 }//rollback
@@ -290,13 +296,16 @@ void engine::tickMovement()
 			statecache.front().player[i-1].gravityScaling = 1;
 			statecache.front().player[i-1].directionalForce[0] = 0;
 			statecache.front().player[i-1].directionalForce[1] = 0;
-		}
-		//if the movement caused both players to collide
-		if(detectCollision())
+		//if the player isn't in the air, they could walk
+		}else if(!playerInAir)
 		{
-			resolveCollision(i);
+			statecache.front().player[i-1].position[0] += statecache.front().player[i-1].walk;
 		}//if
+
+		statecache.front().player[i-1].walk = 0;
+
 	}//for
+
 	//check which player is standing to the right and should be mirrored
 	if(statecache.front().player[0].position[0] > statecache.front().player[1].position[0])
 	{
@@ -306,6 +315,19 @@ void engine::tickMovement()
 		statecache.front().player[0].mirror = false;
 		statecache.front().player[1].mirror = true;
 	}//else
+
+	//if the movement caused both players to collide
+	if (detectCollision())
+	{
+   		// resolve based on relative position
+    	if (statecache.front().player[0].position[0] < statecache.front().player[1].position[0])
+		{
+			resolveCollision(1);
+		}else{
+			resolveCollision(2);
+		}//else
+	}//if
+
 }//tickMovement
 
 void engine::checkActiveHitbox()
@@ -432,17 +454,16 @@ void engine::setNextActions()
 				} else if(statecache.front().player[i-1].position[1] == 0)
 				{	//if the player wants to move left
 					if((movementButton == 4 && statecache.front().player[i-1].mirror) ||
-					   (movementButton = 6 && !statecache.front().player[i-1].mirror))
+					   (movementButton == 6 && !statecache.front().player[i-1].mirror))
 					{
-						statecache.front().player[i-1].position[0] -= movementAmount;
+						statecache.front().player[i-1].walk = -movementAmount;
 
 					//the movement must be to the right
 					} else {
-						statecache.front().player[i-1].position[0] += movementAmount;
+						statecache.front().player[i-1].walk = movementAmount;
 					}//else
 				}//if
-				//resolve any possible collisions
-				detectCollision();
+
 				continue;
 			
 			//an action button has been pressed
@@ -465,6 +486,7 @@ void engine::setNextActions()
 			}//if
 		}//else
 	}//for
+
 }//setNextActions
 
 bool engine::gameOver()
@@ -489,32 +511,34 @@ void engine::changePlayerPosition(int player, float x, float y)
 
 int engine::getActionButton(int player)
 {
-	int i = 0;
-	int iMax = statecache.front().processingInput[player-1].size();
-	char input = '\0';
-	while(input != 'u' && input != 'i' && input != 'j' && input != 'k' && i < iMax)
-	{
-		input = statecache.front().processingInput[player-1][i].first;
-		i++;
-	}//while
-	if(input != 'u' && input != 'i' && input != 'j' && input != 'k')
-		return -1;
-	return keymapping.at(input);
+	for(int i = (int)statecache.front().processingInput[player-1].size() - 1; i >= 0; --i)
+    {
+        char input = statecache.front().processingInput[player-1][i].first;
+
+        if(input == 'u' || input == 'i' ||
+           input == 'j' || input == 'k')
+        {
+            return keymapping.at(input);
+        }//if
+    }//for
+
+    return -1;
 }//getAction
 
 int engine::getMovementButton(int player)
 {
-	int i = 0;
-	int iMax = statecache.front().processingInput[player-1].size();
-	char input = '\0';
-	while(input != 'w' && input != 'a' && input != 's' && input != 'd' && i < iMax)
-	{
-		input = statecache.front().processingInput[player-1][i].first;
-		i++;
-	}//while
-	if(input != 'w' && input != 'a' && input != 's' && input != 'd')
-		return -1;
-	return keymapping.at(input);
+	for(int i = (int)statecache.front().processingInput[player-1].size() - 1; i >= 0; --i)
+    {
+        char input = statecache.front().processingInput[player-1][i].first;
+
+        if(input == 'w' || input == 'a' ||
+           input == 's' || input == 'd')
+        {
+            return keymapping.at(input);
+        }//if
+    }//for
+
+    return -1;
 }//getMovement
 
 std::array<int, 2> engine::getInput(int player)

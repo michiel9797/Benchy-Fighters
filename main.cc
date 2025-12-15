@@ -36,13 +36,24 @@ bool compareInputJson(json data1, json data2)
 		return false;
 	}//if
 
-	for(long unsigned int i = 0; i < data1.size(); i++)
+	if(data1.is_array() && data2.is_array())
 	{
-		if(data1[i]["Pressed"] != data2[i]["Pressed"])
+		for(long unsigned int i = 0; i < data1.size(); i++)
+		{
+			if(data1[i]["Pressed"] != data2[i]["Pressed"])
+			{
+				return false;
+			}//if
+		}//for
+	}else if(!data1.is_array() && !data2.is_array())
+	{
+		if(data1["Pressed"] != data2["Pressed"])
 		{
 			return false;
-		}//if
-	}//for
+		}
+	}else{
+		return false;
+	}
 
 	return true;
 }//compareInputJson
@@ -189,14 +200,21 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 		}else{
 			//if we get a message
 			if(message)
-			{	//if we're receiving messages we should have received earlier
-				/*
+			{	
+				//if we're receiving messages we should have received earlier
 				if(frameLastInputReceived < gameFrame)
 				{	//set the max amount of frames to resimulate later
-					resimulate = gameFrame - frameLastInputReceived;
-					//for each message we've received
-					while(message)
-					{   //if the prediction was wrong
+					//deduct 1 since we just received at least 1 message
+					resimulate = gameFrame - frameLastInputReceived - 1;
+
+					//create temporary storage for the last message data we received
+					json tempInput;
+
+					//for each message we've received, if we would still have to resimulate
+					while(message && resimulate > 0)
+					{   //store this message
+						tempInput = message->data;
+						//if the prediction was wrong
 						if(!compareInputJson(message->data, lastInputReceived))
 						{
 							break;
@@ -204,14 +222,16 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 						//for every correct prediction in order, reduce the amount of frames
 						//that need resimulation and throw away the corresponding message
 						resimulate--;
-						lastFrameMessageReceived++;
+						frameLastInputReceived++;
 						message = (jsonMessage*)clientInstance.ReceiveMessage(0);
 					}//while
 					//roll the game back by up to 7 frames
 					resimulate = std::min(resimulate, 7);
 					gameEngine.rollback(resimulate);
+					//set the last input received correct again
+					lastInputReceived = tempInput;
 				}//if	
-				*/
+
 				//while we still have messages
 				while(message)
 				{
@@ -279,25 +299,25 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 					}//else
 				}//if
 
-				
 				//resimulate if we need to
 				for(int i = 0; i < resimulate; i++)
 				{
+					gameEngine.prepStatecache();
 					gameEngine.manageInputs(1);
 					gameEngine.manageInputs(2);
-					//do not print the resumulated frames
+					//do not print the resimulated frames
 					gameEngine.framegen();
-					gameEngine.prepStatecache();
 				}//for
+
+				//std::cerr << "Frame: " << jippie.frame << std::endl;
 
 				resimulate = 0;
 
 				//advance game state regularly
+				gameEngine.prepStatecache();
 				gameEngine.manageInputs(1);
 				gameEngine.manageInputs(2);
-				
 				gameEngine.printGamestate(gameEngine.framegen());
-				gameEngine.prepStatecache();
 			}//if*/
 
 			//make a new message
