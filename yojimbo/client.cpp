@@ -112,8 +112,6 @@ int main( int argc, char * argv[] )
         return 1;
     }
 
-    yojimbo_log_level( YOJIMBO_LOG_LEVEL_INFO );
-
     srand( (unsigned int) time( NULL ) );
 
     int result = ClientMain( argc, argv );

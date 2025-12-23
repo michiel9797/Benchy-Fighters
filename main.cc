@@ -65,24 +65,22 @@ json setInputAhead(json data, int frameIncreaseAmount)
 	{
 		for(long unsigned int i = 0; i < data.size(); i++)
 		{
-			std::string timeString = data[i]["Time"];
-			float time = std::stof(timeString);
-			time += frameIncreaseAmount * (timePerFrame/1000);
-			timeString = std::to_string(time);
-			data[i]["Time"] = timeString;
+			std::string frameString = data[i]["Frame"];
+			int frame = std::stoi(frameString) + frameIncreaseAmount;
+			frameString = std::to_string(frame);
+			data[i]["Frame"] = frameString;
 		}//for
 	}else{
-		std::string timeString = data["Time"];
-		float time = std::stof(timeString);
-		time += frameIncreaseAmount * (timePerFrame/1000);
-		timeString = std::to_string(time);
-		data["Time"] = timeString;
+		std::string frameString = data["Frame"];
+		int frame = std::stoi(frameString) + frameIncreaseAmount;
+		frameString = std::to_string(frame);
+		data["Frame"] = frameString;
 	}//else
 	return data;
 }//setInputAhead
 
 //for grabbing the inputs to send over to the other client
-json extractInputForFrame(json data, int frame){
+json extractInputForFrame(json data, int extractFrame){
 	//make a json object to copy inputs into
 	json copy = json::array();
 	//keep count of what line of the copy we're working on
@@ -94,14 +92,14 @@ json extractInputForFrame(json data, int frame){
 		{
 			if(data[i]["Pressed"] != nullptr)
 			{
-				std::string timeString = data[i]["Time"];
-				float time = std::stof(timeString) * 1000;
+				std::string frameString = data[i]["Frame"];
+				int frame = std::stoi(frameString);
 
 				//if the input is earlier or later then we're looking for
-				if((time < (frame - 1) * timePerFrame))
+				if((frame < (extractFrame - 1)))
 				{	//skip if earlier
 					continue;
-				}else if(time >= frame * timePerFrame)
+				}else if(frame > extractFrame)
 				{	//stop if later
 					break;
 				}
@@ -113,11 +111,11 @@ json extractInputForFrame(json data, int frame){
 	}else{
 		if(data["Pressed"] != nullptr)
 		{
-			std::string timeString = data["Time"];
-			float time = std::stof(timeString) * 1000;
+			std::string frameString = data["Frame"];
+			int frame = std::stoi(frameString);
 
-			//if the input is not earlier or later then we're looking for
-			if((time >= (frame - 1) * timePerFrame) && (time < frame * timePerFrame))
+			//if the input in the correct frame
+			if(frame == extractFrame)
 				copy[copyCount] = data;
 		}//if
 	}//else
@@ -318,12 +316,13 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 				gameEngine.manageInputs(1);
 				gameEngine.manageInputs(2);
 				gameEngine.printGamestate(gameEngine.framegen());
-			}//if*/
+			}//if
 
 			//make a new message
 			message = (jsonMessage*)clientInstance.CreateMessage(JSON_MESSAGE);
 			//insert the required input data
 			message->data = extractInputForFrame(currentPlayerInput, gameFrame + networkDelay);
+			
 			//send the message
 			clientInstance.SendMessage(0, message);
 

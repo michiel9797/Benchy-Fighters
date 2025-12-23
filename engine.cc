@@ -108,10 +108,9 @@ int engine::addInput(int player, json data)
 			{
 				std::string buttonString = data[i]["Pressed"];
 				char button = buttonString[1];
-				std::string timeString = data[i]["Time"];
-				float time = std::stof(timeString) * 1000;
-				int inputFrame = (int)(time / timePerFrame);
-				inputList[player-1].push(std::make_pair(button, inputFrame));
+				std::string frameString = data[i]["Frame"];
+				int inputFrame = std::stoi(frameString);
+				inputList[player-1].push_back(std::make_pair(button, inputFrame));
 			}//if
 		}//for
 	}else{
@@ -119,10 +118,9 @@ int engine::addInput(int player, json data)
 		{
 			std::string buttonString = data["Pressed"];
 			char button = buttonString[1];
-			std::string timeString = data["Time"];
-			float time = std::stof(timeString) * 1000;
-			int inputFrame = (int)(time / timePerFrame);
-			inputList[player-1].push(std::make_pair(button, inputFrame));
+			std::string frameString = data["Frame"];
+			int inputFrame = std::stoi(frameString);
+			inputList[player-1].push_back(std::make_pair(button, inputFrame));
 		}//if
 	}//else
 	return 0;
@@ -141,7 +139,7 @@ int engine::manageInputs(int player)
 		  (statecache.front().processingInput[player-1].front().second) < 
 		  (statecache.front().frame - framesInBuffer))
 	{
-		statecache.front().processingInput[player-1].erase(statecache.front().processingInput[player-1].begin());
+		statecache.front().processingInput[player-1].pop_front();
 	}//while
 
 	//add all the inputs from the input queue that have entered
@@ -150,7 +148,7 @@ int engine::manageInputs(int player)
 		  inputList[player-1].front().second < statecache.front().frame)
 	{
 		statecache.front().processingInput[player-1].push_back(inputList[player-1].front());
-		inputList[player-1].pop();
+		inputList[player-1].pop_front();
 	}//while
 
 	return 0;
@@ -186,11 +184,24 @@ gamestate engine::framegen()
 	return statecache.front();
 }//framegen
 
+//set the current players input back in the input list before rolling
+void engine::pushInputBack()
+{
+	while(!statecache.front().processingInput[currentPlayer-1].empty() &&
+		  statecache.front().processingInput[currentPlayer-1].back().second == statecache.front().frame)
+	{
+		inputList[currentPlayer-1].push_front(statecache.front().processingInput[currentPlayer-1].back());
+		statecache.front().processingInput[currentPlayer-1].pop_back();
+	}//while
+}//pushInputBack
+
 //roll the gamestate back by the amount of frames given
 void engine::rollback(int rollbackFrames)
 {
+	std::cerr << "game frame: " << statecache.front().frame << std::endl;
 	for(int i = 0; i < rollbackFrames; i++)
 	{
+		pushInputBack();
 		std::cerr << "Rolling " << i+1 << std::endl;
 		statecache.erase(statecache.begin());
 	}//for

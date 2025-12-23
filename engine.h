@@ -9,6 +9,7 @@
 
 #include <stack>
 #include <queue>
+#include <deque>
 #include <vector>
 #include <utility>
 #include <cmath>
@@ -99,8 +100,8 @@ struct gamestate
 	playerstate player[2];
 	//the current frame the match is on 
 	int frame;
-	//a vector of inputs to process for both players
-	std::vector<std::pair<char, int>> processingInput[2];
+	//a deque of inputs to process for both players sorted by ascending frame number
+	std::deque<std::pair<char, int>> processingInput[2];
 	//if the current frame has finished calculations
 	bool finished;
 };//gamestate
@@ -143,6 +144,10 @@ class engine
 		void printInputBuffer(int player);
 
 	private:
+		//when rolling back, this pushes the current players
+		//inputs for that frame back into the input buffer so it
+		//can be re-evaluated again
+		void pushInputBack();
 		//set a players inactionable value to the given bool
 		//1 = player 1, 2 = player 2
 		void setPlayerInactionable(int player, bool set);
@@ -209,8 +214,8 @@ class engine
 		//...
 		//6: gamestate after calculating 6 frames ago
 		std::vector<gamestate> statecache;
-		//a queue of inputs for both players
-		std::queue<std::pair<char, int>> inputList[2];
+		//a deque of inputs for both players 
+		std::deque<std::pair<char, int>> inputList[2];
 		//the player that is playing on this device, 1 or 2
 		int currentPlayer;
 };//engine
