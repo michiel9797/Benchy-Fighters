@@ -133,22 +133,22 @@ void engine::setCurrentPlayer(int player)
 
 int engine::manageInputs(int player)
 {
+	//add all the inputs from the input queue that have entered
+	//the buffers frame/time limit if there are inputs in the input queue
+	while(!inputList[player-1].empty() && 
+		  inputList[player-1].front().second <= statecache.front().frame + 1)
+	{
+		statecache.front().processingInput[player-1].push_back(inputList[player-1].front());
+		inputList[player-1].pop_front();
+	}//while
+
 	//remove all the inputs from the vector which have passed
 	//the buffers frame/time limit if there are inputs in the buffer
 	while(!statecache.front().processingInput[player-1].empty() && 
 		  (statecache.front().processingInput[player-1].front().second) < 
-		  (statecache.front().frame - framesInBuffer))
+		  (statecache.front().frame + 1 - framesInBuffer))
 	{
 		statecache.front().processingInput[player-1].pop_front();
-	}//while
-
-	//add all the inputs from the input queue that have entered
-	//the buffers frame/time limit if there are inputs in the input queue
-	while(!inputList[player-1].empty() && 
-		  inputList[player-1].front().second < statecache.front().frame)
-	{
-		statecache.front().processingInput[player-1].push_back(inputList[player-1].front());
-		inputList[player-1].pop_front();
 	}//while
 
 	return 0;
@@ -198,11 +198,9 @@ void engine::pushInputBack()
 //roll the gamestate back by the amount of frames given
 void engine::rollback(int rollbackFrames)
 {
-	std::cerr << "game frame: " << statecache.front().frame << std::endl;
 	for(int i = 0; i < rollbackFrames; i++)
 	{
 		pushInputBack();
-		std::cerr << "Rolling " << i+1 << std::endl;
 		statecache.erase(statecache.begin());
 	}//for
 }//rollback
@@ -284,6 +282,16 @@ bool engine::detectCollision()
 
 void engine::tickMovement()
 {
+	//check which player is standing to the right and should be mirrored
+	if(statecache.front().player[0].position[0] > statecache.front().player[1].position[0])
+	{
+		statecache.front().player[0].mirror = true;
+		statecache.front().player[1].mirror = false;
+	} else {
+		statecache.front().player[0].mirror = false;
+		statecache.front().player[1].mirror = true;
+	}//else
+
 	//for each player
 	for(int i = 1; i <= 2; i++)
 	{
@@ -316,16 +324,6 @@ void engine::tickMovement()
 		statecache.front().player[i-1].walk = 0;
 
 	}//for
-
-	//check which player is standing to the right and should be mirrored
-	if(statecache.front().player[0].position[0] > statecache.front().player[1].position[0])
-	{
-		statecache.front().player[0].mirror = true;
-		statecache.front().player[1].mirror = false;
-	} else {
-		statecache.front().player[0].mirror = false;
-		statecache.front().player[1].mirror = true;
-	}//else
 
 	//if the movement caused both players to collide
 	if (detectCollision())
@@ -434,49 +432,33 @@ void engine::setNextActions()
 			//if no action was pressed
 			if(actionButton == -1)
 			{
-				//if no movement was pressed or only down was pressed
-				if(movementButton == -1 || movementButton == 2)
+				//if the player isn't in the air
+				if(statecache.front().player[i-1].position[1] == 0)
 				{
-					continue;
-
-				//if the movement is a jump
-				} else if(movementButton == 7 || movementButton == 8 || movementButton == 9) 
-				{	//and the player isn't in the air
-					if(statecache.front().player[i-1].position[1] == 0)
-					{
+					//if the movement is a jump
+					if(movementButton == 7 || movementButton == 8 || movementButton == 9) 
+					{	
 						statecache.front().player[i-1].directionalForce[1] += jumpForce;
-						
 						//if the player wants to jump to the left
-						if((movementButton == 7 && statecache.front().player[i-1].mirror) ||
-						   (movementButton == 9 && !statecache.front().player[i-1].mirror))
+						if(movementButton == 7)
 						{
 							statecache.front().player[i-1].directionalForce[0] -= jumpSideForce;
-						
-						//if the jump wasn't straight up, it must be to the right 
-						}else if(movementButton != 8)
+						//if the player wants to jump to the right
+						}else if(movementButton == 9)
 						{
 							statecache.front().player[i-1].directionalForce[0] += jumpSideForce;
 						}//if
-					}//if
 					
-					continue;
-				
-				//if the player is not in the air
-				} else if(statecache.front().player[i-1].position[1] == 0)
-				{	//if the player wants to move left
-					if((movementButton == 4 && statecache.front().player[i-1].mirror) ||
-					   (movementButton == 6 && !statecache.front().player[i-1].mirror))
+					//if the player wants to move to the left
+					}else if(movementButton == 4)
 					{
 						statecache.front().player[i-1].walk = -movementAmount;
 
-					//the movement must be to the right
-					} else {
+					//if the player wants to move to the right
+					} else if(movementButton == 6){
 						statecache.front().player[i-1].walk = movementAmount;
 					}//else
-				}//if
-
-				continue;
-			
+				}//if	
 			//an action button has been pressed
 			} else {
 				std::array<int, 2> input = {movementButton, actionButton};
@@ -497,7 +479,6 @@ void engine::setNextActions()
 			}//if
 		}//else
 	}//for
-
 }//setNextActions
 
 bool engine::gameOver()
@@ -726,10 +707,10 @@ void engine::testGravity(int player, int action)
 
 void engine::printInputBuffer(int player)
 {
-	std::cout << "Player " << player << " processing input list" << std::endl;
+	std::cout << "Player " << player << " processing input list ";
 	for(long unsigned int i = 0; i < statecache.front().processingInput[player-1].size(); i++)
 	{
-		std::cout << "Input: " << statecache.front().processingInput[player-1][i].first
-				  << " Time: " << statecache.front().processingInput[player-1][i].second << std::endl;
+		std::cout << " Input: " << statecache.front().processingInput[player-1][i].first
+				  << " Frame: " << statecache.front().processingInput[player-1][i].second;
 	}//for
 }

@@ -11,8 +11,9 @@ using json = nlohmann::json;
 
 	
 jsonMessage::jsonMessage()
+  : data(json::object())
 {
-	data = json::object();
+  //no further initialization needed
 }//jsonMessage
 
 template<typename Stream> bool jsonMessage::Serialize(Stream & stream)
@@ -49,30 +50,34 @@ template<typename Stream> bool jsonMessage::Serialize(Stream & stream)
 	return true;
 }//serialize
 
-
-
-networkLayer::~networkLayer()
+clientLayer::clientLayer(int thisDevice)
+  : client(thisDevice)
 {
-	//empty for now
-}
+  //no further initialization needed
+}//clientLayer
 
-bool yojimboLayer::startConnection()
+yojimboClient::yojimboClient(int thisDevice)
+  : clientLayer(thisDevice)
+{
+  InitializeYojimbo();
+}//yojimboClient
+
+bool yojimboClient::startConnection()
 {
 	return false;
 }//startConnection
 
-void yojimboLayer::sendMessage(std::vector<std::pair<char, float>> input)
+void yojimboClient::sendMessage(json message)
 {
 	return;
 }//sendMessage
 
-std::vector<std::pair<char, float>> yojimboLayer::receiveMessage()
+bool yojimboClient::receiveMessage(json &message)
 {
-	std::vector<std::pair<char, float>> temp;
-	return temp;
+	return false;
 }//receiveMessage
 
-void yojimboLayer::endConnection()
+void yojimboClient::endConnection()
 {
 	return;
 }//endConnections
@@ -81,8 +86,3 @@ void yojimboServer::startMatch()
 {
 	return;
 }//startMatch
-
-void yojimboServer::endMatch()
-{
-	return;
-}//endMatch

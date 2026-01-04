@@ -23,51 +23,59 @@ const int maxMessageBuffer = 2048;
 class networkLayer
 {
 	public:
-		//initialize the device value to tell the networking layer which device
-		//it is, does not need to be overwritten necessarily
-		networkLayer(int thisDevice){device = thisDevice;};
-		//deconstructor
-		virtual ~networkLayer();
+		//destructor
+		virtual ~networkLayer() = default;
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
 		virtual bool startConnection() = 0;
-		//send a message in the shape of an input vector, can be used to express
+		//send a message in the shape of a json object, can be used to express
 		//other messages too
-		virtual void sendMessage(std::vector<std::pair<char, float>> input) = 0;
-		//receive messages that have been sent to you [may need to be a different shape]
-		virtual std::vector<std::pair<char, float>> receiveMessage() = 0;
+		virtual void sendMessage(json message) = 0;
+		//receive messages that have been sent to you. Returns true when a message
+		//has been successfully loaded into the given variable, returns false otherwise
+		virtual bool receiveMessage(json &message) = 0;
+};//networkingLayer
+
+class clientLayer: public virtual networkLayer
+{
+	public:
+		//initialize the device value to tell the client layer which device it is
+		clientLayer(int thisDevice);
+		//destructor
+		virtual ~clientLayer() = default;
 		//break the connection with other devices
 		virtual void endConnection() = 0;
+
 	private:
-		//which device we are
-		int device;
-};//networkingLayer
+		//which client we are
+		int client;
+};
 
 class serverLayer: public virtual networkLayer
 {
 	public:
+		//destructor
+		virtual ~serverLayer() = default;
 		//have the server device send the start of match signal
 		virtual void startMatch() = 0;
-		//have the sever device send the end of match signal
-		virtual void endMatch() = 0;
 };//serverlayer
 
-class yojimboLayer: public virtual networkLayer
+class yojimboClient: public virtual clientLayer
 {
 	public:
+		//initialize yojibmo
+		yojimboClient(int thisDevice);
 		//start the connection with the other device, once returned with True 
 		//the device will assume the connection has been established
 		bool startConnection();
-		//send a message in the shape of an input vector, can be used to express
+		//send a message in the shape of a json, can be used to express
 		//other messages too
-		void sendMessage(std::vector<std::pair<char, float>> input);
-		//receive messages that have been sent to you [may need to be a different shape]
-		std::vector<std::pair<char, float>> receiveMessage();
+		void sendMessage(json message);
+		//receive messages that have been sent to you. Returns true when a message
+		//has been successfully loaded into the given variable, returns false otherwise
+		bool receiveMessage(json &message);
 		//break the connection with other devices
 		void endConnection();
-	private:
-		//which device we are
-		int device;
 };//yojimboLayer
 
 class yojimboServer: public virtual serverLayer
@@ -82,14 +90,12 @@ class yojimboServer: public virtual serverLayer
 		virtual void endMatch();
 		//send a message in the shape of an input vector, can be used to express
 		//other messages too
-		void sendMessage(std::vector<std::pair<char, float>> input);
-		//receive messages that have been sent to you [may need to be a different shape]
-		std::vector<std::pair<char, float>> receiveMessage();
+		void sendMessage(json message);
+		//receive messages that have been sent to you. Returns true when a message
+		//has been successfully loaded into the given variable, returns false otherwise
+		bool receiveMessage(json &message);
 		//break the connection with other devices
 		void endConnection();
-	private:
-		//which device we are
-		int device;
 };//yojimboServer
 
 struct jsonMessage : public yojimbo::Message

@@ -95,8 +95,8 @@ json extractInputForFrame(json data, int extractFrame){
 				std::string frameString = data[i]["Frame"];
 				int frame = std::stoi(frameString);
 
-				//if the input is earlier or later then we're looking for
-				if((frame < (extractFrame - 1)))
+				//if the input is earlier then we're looking for
+				if((frame < extractFrame))
 				{	//skip if earlier
 					continue;
 				}else if(frame > extractFrame)
@@ -114,7 +114,7 @@ json extractInputForFrame(json data, int extractFrame){
 			std::string frameString = data["Frame"];
 			int frame = std::stoi(frameString);
 
-			//if the input in the correct frame
+			//if the input is in the correct frame
 			if(frame == extractFrame)
 				copy[copyCount] = data;
 		}//if
@@ -134,15 +134,14 @@ json extractInputForFrame(json data, int extractFrame){
 //the main loop for an emulation run
 void localLoop(engine &gameEngine)
 {
-	gameEngine.manageInputs(1);
-	gameEngine.manageInputs(2);
 	auto frame_interval = std::chrono::milliseconds(int(timePerFrame)); 
     auto current = std::chrono::high_resolution_clock::now();
     while (!gameEngine.getFinished()) {
-        gameEngine.printGamestate(gameEngine.framegen());
 		gameEngine.prepStatecache();
 		gameEngine.manageInputs(1);
 		gameEngine.manageInputs(2);
+        gameEngine.printGamestate(gameEngine.framegen());
+		//gameEngine.printInputBuffer(1);   //REMOVE!!!!!!!!!!
         current += frame_interval;
 		std::this_thread::sleep_until(current);
     }//while
@@ -190,6 +189,8 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 					if(message->data["Start"] == "true")
 					{
 						start = true;
+						//set up a stub for predictions if needs be
+						lastInputReceived = message->data;
 					}//if
 				}//if
 				message = (jsonMessage*)clientInstance.ReceiveMessage(0);
@@ -202,29 +203,35 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 				//if we're receiving messages we should have received earlier
 				if(frameLastInputReceived < gameFrame)
 				{	//set the max amount of frames to resimulate later
-					//deduct 1 since we just received at least 1 message
-					resimulate = gameFrame - frameLastInputReceived - 1;
+					resimulate = gameFrame - frameLastInputReceived + 1;
 
 					//create temporary storage for the last message data we received
 					json tempInput;
 
 					//for each message we've received, if we would still have to resimulate
 					while(message && resimulate > 0)
-					{   //store this message
-						tempInput = message->data;
+					{
 						//if the prediction was wrong
 						if(!compareInputJson(message->data, lastInputReceived))
 						{
 							break;
 						}//if
+						tempInput = message->data;
 						//for every correct prediction in order, reduce the amount of frames
 						//that need resimulation and throw away the corresponding message
 						resimulate--;
 						frameLastInputReceived++;
 						message = (jsonMessage*)clientInstance.ReceiveMessage(0);
 					}//while
-					//roll the game back by up to 7 frames
-					resimulate = std::min(resimulate, 7);
+					//if we would still have to resimulate but have no messages
+					//to process, postpone resimulation until we have the required
+					//messages
+					if(!message && resimulate > 0)
+					{
+						resimulate = 0;
+					}//if
+					//roll the game back by up to 8 frames
+					resimulate = std::min(resimulate, 8);
 					gameEngine.rollback(resimulate);
 					//set the last input received correct again
 					lastInputReceived = tempInput;
@@ -306,8 +313,6 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 					//do not print the resimulated frames
 					gameEngine.framegen();
 				}//for
-
-				//std::cerr << "Frame: " << jippie.frame << std::endl;
 
 				resimulate = 0;
 
@@ -452,10 +457,6 @@ int main(int argc, char * argv[])
 		serverInstance.Start(2);
 
 		std::cout << "SERVER START" << std::endl;
-		
-		char addressString[256];
-		serverInstance.GetAddress().ToString( addressString, sizeof( addressString ) );
-		printf( "server address is %s\n", addressString );
 
 		serverLoop(serverInstance);
 
