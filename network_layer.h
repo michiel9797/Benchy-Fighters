@@ -25,15 +25,14 @@ class networkLayer
 	public:
 		//destructor
 		virtual ~networkLayer() = default;
-		//start the connection with the other device, once finished the device
-		//will assume the connection has been established
-		virtual bool startConnection() = 0;
-		//send a message in the shape of a json object, can be used to express
-		//other messages too
-		virtual void sendMessage(json message) = 0;
-		//receive messages that have been sent to you. Returns true when a message
-		//has been successfully loaded into the given variable, returns false otherwise
-		virtual bool receiveMessage(json &message) = 0;
+		//a function that is called at the start of every network device loop.
+		//if false is returned, the server will be shut down.
+		//does not need to be overridden
+		virtual bool startOfLoop(double simTime){return true;};
+		//a function that is called at the end of every network device loop.
+		//if false is returned, the server will be shut down.
+		//does not need to be overriden
+		virtual bool endOfLoop(){return true;};
 };//networkingLayer
 
 class clientLayer: public virtual networkLayer
@@ -43,6 +42,15 @@ class clientLayer: public virtual networkLayer
 		clientLayer(int thisDevice);
 		//destructor
 		virtual ~clientLayer() = default;
+		//send a message in the shape of a json object, can be used to express
+		//other messages too
+		virtual void sendMessage(json message) = 0;
+		//receive messages that have been sent to you. Returns true when a message
+		//has been successfully loaded into the given variable, returns false otherwise
+		virtual bool receiveMessage(json &message) = 0;
+		//start the connection with the other device, once finished the device
+		//will assume the connection has been established
+		virtual bool startConnection() = 0;
 		//break the connection with other devices
 		virtual void endConnection() = 0;
 
@@ -51,13 +59,20 @@ class clientLayer: public virtual networkLayer
 		int client;
 };
 
+//note: there is no explicit function called to check if a server needs
+//to be shut down. This is expected to be handled in either the startOfLoop
+//or endOfLoop function.
 class serverLayer: public virtual networkLayer
 {
 	public:
 		//destructor
 		virtual ~serverLayer() = default;
-		//have the server device send the start of match signal
-		virtual void startMatch() = 0;
+		//have the server device attempt to send the start of match signal.
+		//Returns false if the match hasn't been started yet, 
+		//and true if it has been started
+		virtual bool startMatch() = 0;
+		//exchange messages between clients
+		virtual void exchangeMessages() = 0;
 };//serverlayer
 
 class yojimboClient: public virtual clientLayer
@@ -67,35 +82,44 @@ class yojimboClient: public virtual clientLayer
 		yojimboClient(int thisDevice);
 		//start the connection with the other device, once returned with True 
 		//the device will assume the connection has been established
-		bool startConnection();
+		bool startConnection() override;
 		//send a message in the shape of a json, can be used to express
 		//other messages too
-		void sendMessage(json message);
+		void sendMessage(json message) override;
 		//receive messages that have been sent to you. Returns true when a message
 		//has been successfully loaded into the given variable, returns false otherwise
-		bool receiveMessage(json &message);
+		bool receiveMessage(json &message) override;
+		//a function that is called at the start of every network device loop.
+		bool startOfLoop(double simTime) override;
+		//a function that is called at the end of every network device loop.
+		bool endOfLoop() override;
 		//break the connection with other devices
-		void endConnection();
+		void endConnection() override;
 };//yojimboLayer
 
 class yojimboServer: public virtual serverLayer
 {
 	public:
-		//start the connection with the other device, once returned with True 
-		//the device will assume the connection has been established
-		bool startConnection();
-		//have the server device send the start of match signal
-		void startMatch();
-		//have the sever device send the end of match signal
-		virtual void endMatch();
-		//send a message in the shape of an input vector, can be used to express
-		//other messages too
-		void sendMessage(json message);
-		//receive messages that have been sent to you. Returns true when a message
-		//has been successfully loaded into the given variable, returns false otherwise
-		bool receiveMessage(json &message);
-		//break the connection with other devices
-		void endConnection();
+		//initialize yojimbo
+		yojimboServer(char *address);
+		//destructor
+		~yojimboServer();
+		//have the server device attempt to send the start of match signal.
+		//Returns false if the match hasn't been started yet, 
+		//and true if it has been started
+		bool startMatch() override;
+		//exchange messages between clients
+		void exchangeMessages() override;
+		//update the servers time and receive packets
+		bool startOfLoop(double simTime) override;
+		//send packets
+		bool endOfLoop() override;
+	private:
+		//the server object
+		yojimbo::Server *serverInstance;
+		//how many clients are connected. If this number goes down at
+		//any point, the server will shut down
+		int numClients;
 };//yojimboServer
 
 struct jsonMessage : public yojimbo::Message
