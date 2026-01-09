@@ -17,17 +17,6 @@ const uint64_t ProtocolId = 0x0123456789ABCDEFULL;
 
 using json = nlohmann::json;
 
-
-//REMOVE!!!!!!!!!!!!!!!!
-int MyYojimboPrintf(const char *fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    int result = vprintf(fmt, args);
-    va_end(args);
-    return result;
-}//MyYojimboPrintf
-
 //for comparing the inputs in two json
 bool compareInputJson(json data1, json data2)
 {
@@ -342,67 +331,37 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 }//clientLoop
 
 //the main loop for a server in the simulation run
-void serverLoop(yojimbo::Server &serverInstance)
+void serverLoop(serverLayer &server)
 {
 	auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
 	auto next_frame_time = std::chrono::high_resolution_clock::now();
 	double sim_interval = timePerFrame / 1000.0;
 	double simTime = 0.0;
-	//have two clients connected yet
-	bool clientPair = false;
+	//has the start signal been sent
+	bool start = false;
 
 	while (true)
 	{
 		simTime += sim_interval;
-		serverInstance.AdvanceTime(simTime);
 
-		serverInstance.ReceivePackets();
-		
-		//if two clients havent been connected before this yet
-		if(!clientPair)
-		{	//if two clients are now connected
-			if(serverInstance.GetNumConnectedClients() == 2)
-			{	//generate and send the start message
-				jsonMessage *message1 = (jsonMessage*)serverInstance.CreateMessage(0, JSON_MESSAGE);
-				message1->data["Start"] = "true";
-				jsonMessage *message2 = (jsonMessage*)serverInstance.CreateMessage(1, JSON_MESSAGE);
-				message2->data["Start"] = "true";
-				serverInstance.SendMessage(0, 0, message1);
-				serverInstance.SendMessage(1, 0, message2);
+		if(!server.startOfLoop(simTime))
+		{
+			return;
+		}//if
 
-				clientPair = true;
-			}//if
+		//if the start signal hasn't been sent yet
+		if(!start)
+		{	
+			start = server.startMatch();
 		} else {
-			//if a client has disconnected
-			if(!(serverInstance.GetNumConnectedClients() == 2))
-				return;
-
-			//exchange messages between clients
-			jsonMessage *message = (jsonMessage*)serverInstance.ReceiveMessage(0, 0);
-			jsonMessage *copy;
-			while(message)
-			{
-				copy = (jsonMessage*)serverInstance.CreateMessage(1, JSON_MESSAGE);
-				copy->data = message->data;
-				serverInstance.ReleaseMessage(0, message);
-
-				serverInstance.SendMessage(1, 0, copy);
-				message = (jsonMessage*)serverInstance.ReceiveMessage(0, 0);
-			}//while
-			message = (jsonMessage*)serverInstance.ReceiveMessage(1, 0);
-			while(message)
-			{
-				copy = (jsonMessage*)serverInstance.CreateMessage(0, JSON_MESSAGE);
-				copy->data = message->data;
-				serverInstance.ReleaseMessage(1, message);
-
-				serverInstance.SendMessage(0, 0, copy);
-				message = (jsonMessage*)serverInstance.ReceiveMessage(1, 0);
-			}//while
+			server.exchangeMessages();
 		}//else
 
-		serverInstance.SendPackets();
-		
+		if(!server.endOfLoop())
+		{
+			return;
+		}//if
+
 		next_frame_time += frame_interval;
 		std::this_thread::sleep_until(next_frame_time);
 	}//while
@@ -437,30 +396,12 @@ int main(int argc, char * argv[])
 	}//if
 
 	if(exec_mode == "SERVER"){
-		InitializeYojimbo();
-		yojimboAdapter adapter;
-		yojimbo::ClientServerConfig config;
-		config.networkSimulator = false;
-
-    	uint8_t privateKey[yojimbo::KeyBytes];
-    	memset( privateKey, 0, yojimbo::KeyBytes );
-
-		yojimbo::Server serverInstance(
-			yojimbo::GetDefaultAllocator(),
-			privateKey,
-			yojimbo::Address(argv[2]),
-			config,
-			adapter,
-			ProtocolId
-		);
-
-		serverInstance.Start(2);
+		yojimboServer server = yojimboServer(argv[2]);
 
 		std::cout << "SERVER START" << std::endl;
 
-		serverLoop(serverInstance);
+		serverLoop(server);
 
-		serverInstance.Stop();
 		return 0;
 	} else {
 		engine gameEngine;
@@ -511,6 +452,7 @@ int main(int argc, char * argv[])
 			gameEngine.setCurrentPlayer(currentPlayer);
 		
 			InitializeYojimbo();
+
 			yojimboAdapter adapter;
 			yojimbo::ClientServerConfig config;
 			config.networkSimulator = false;

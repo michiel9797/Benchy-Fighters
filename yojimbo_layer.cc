@@ -7,11 +7,22 @@
 #include "network_layer.h"
 #include <stdio.h>
 
+#include <iostream> //!!!!!!!!!!!!!REMOVE
+
 const uint64_t ProtocolId = 0x0123456789ABCDEFULL;
 
 using json = nlohmann::json;
 
-	
+//REMOVE!!!!!!!!!!!!!!!!
+int MyYojimboPrintf(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    int result = vprintf(fmt, args);
+    va_end(args);
+    return result;
+}//MyYojimboPrintf
+
 jsonMessage::jsonMessage()
   : data(json::object())
 {
@@ -95,10 +106,11 @@ void yojimboClient::endConnection()
 }//endConnections
 
 yojimboServer::yojimboServer(char *address)
+  : adapter(),
+    numClients(0)
 {
   InitializeYojimbo();
 
-  yojimboAdapter adapter;
 	yojimbo::ClientServerConfig config;
 	config.networkSimulator = false;
 
@@ -174,6 +186,7 @@ bool yojimboServer::startOfLoop(double simTime)
   {
 		return false;
   }//if
+  numClients = newNumClients;
   return true;
 }//startOfLoop
 
