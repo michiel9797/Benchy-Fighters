@@ -5,7 +5,9 @@
 //Last edited: 30-07-2025
 
 #include "network_layer.h"
+#include "engine.h"
 #include <stdio.h>
+#include <thread>
 
 #include <iostream> //!!!!!!!!!!!!!REMOVE
 
@@ -69,44 +71,115 @@ clientLayer::clientLayer(int thisDevice)
   //no further initialization needed
 }//clientLayer
 
-yojimboClient::yojimboClient(int thisDevice)
-  : clientLayer(thisDevice)
+yojimboClient::yojimboClient(int thisDevice, char *clientAddress)
+  : clientLayer(thisDevice),
+    clientInstance(),
+    adapter(),
+    simTime(0)
 {
   InitializeYojimbo();
+
+	yojimbo::ClientServerConfig config;
+	config.networkSimulator = false;
+
+  uint8_t privateKey[yojimbo::KeyBytes];
+	memset(privateKey, 0, yojimbo::KeyBytes);
+
+  clientInstance = new yojimbo::Client( 
+	yojimbo::GetDefaultAllocator(), 
+	  yojimbo::Address(clientAddress), 
+	  config, 
+		adapter, 
+		ProtocolId
+	);
 }//yojimboClient
 
-bool yojimboClient::startConnection()
+bool yojimboClient::startConnection(char *address)
 {
-	return false;
+  yojimbo::Address serverAddress(address);
+
+  uint8_t privateKey[yojimbo::KeyBytes];
+	memset(privateKey, 0, yojimbo::KeyBytes);
+
+	auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
+	auto next_frame_time = std::chrono::high_resolution_clock::now();
+	double sim_interval = timePerFrame / 1000.0;
+	double simTime = 0.0;
+
+	clientInstance->AdvanceTime(simTime);
+
+	clientInstance->InsecureConnect(privateKey, client, serverAddress);
+	
+	while(!clientInstance->IsConnected())
+	{
+		simTime += sim_interval;
+
+    clientInstance->AdvanceTime(simTime);
+
+		clientInstance->SendPackets();
+		clientInstance->ReceivePackets();
+
+		next_frame_time += frame_interval;
+		std::this_thread::sleep_until(next_frame_time);
+	}//while
+
+	return true;
 }//startConnection
 
-void yojimboClient::sendMessage(json message)
+void yojimboClient::sendMessage(json messageData)
 {
-	return;
+  //make a new message
+	jsonMessage *message = (jsonMessage*)clientInstance->CreateMessage(JSON_MESSAGE);
+	//insert the required input data
+	message->data = messageData;	
+	//send the message
+	clientInstance->SendMessage(0, message);
 }//sendMessage
 
-bool yojimboClient::receiveMessage(json &message)
+bool yojimboClient::receiveMessage(std::vector<json> &message)
 {
-	return false;
+  jsonMessage* newMessage = (jsonMessage*)clientInstance->ReceiveMessage(0);
+  if(!newMessage)
+  {
+    return false;
+  }//if
+  if(newMessage->data.is_array())
+  {
+    std::vector<json> newVector;
+    for(uint64_t i = 0; i <= newMessage->data.size(); i++)
+    {
+      newVector.push_back(newMessage->data[i]);
+    }//for
+    message = newVector;
+  } else {
+    message[0] = newMessage->data;
+    message.resize(1);
+  }//else
+  return true;
 }//receiveMessage
 
 bool yojimboClient::startOfLoop(double simTime)
 {
+  clientInstance->AdvanceTime(simTime);
+
+	clientInstance->ReceivePackets();
   return true;
 }//startOfLoop
 
 bool yojimboClient::endOfLoop()
 {
+  clientInstance->SendPackets();
   return true;
 }//endOfLoop
 
 void yojimboClient::endConnection()
 {
-	return;
+	clientInstance->Disconnect();
 }//endConnections
 
 yojimboServer::yojimboServer(char *address)
-  : adapter(),
+  : serverInstance(),
+    adapter(),
     numClients(0)
 {
   InitializeYojimbo();
@@ -114,19 +187,19 @@ yojimboServer::yojimboServer(char *address)
 	yojimbo::ClientServerConfig config;
 	config.networkSimulator = false;
 
-  	uint8_t privateKey[yojimbo::KeyBytes];
-  	memset( privateKey, 0, yojimbo::KeyBytes );
+  uint8_t privateKey[yojimbo::KeyBytes];
+  memset( privateKey, 0, yojimbo::KeyBytes );
 
-	  serverInstance = new yojimbo::Server(
-		  yojimbo::GetDefaultAllocator(),
-		  privateKey,
-		  yojimbo::Address(address),
-		  config,
-		  adapter,
-		  ProtocolId
-		);
+  serverInstance = new yojimbo::Server(
+	  yojimbo::GetDefaultAllocator(),
+	  privateKey,
+	  yojimbo::Address(address),
+	  config,
+	  adapter,
+	  ProtocolId
+	);
 
-		serverInstance->Start(2);
+	serverInstance->Start(2);
 }//yojimboServer
 
 yojimboServer::~yojimboServer()

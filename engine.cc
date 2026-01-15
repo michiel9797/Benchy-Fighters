@@ -131,6 +131,11 @@ void engine::setCurrentPlayer(int player)
 	currentPlayer = player;
 }//setCurrentPlayer
 
+int engine::getCurrentPlayer()
+{
+	return currentPlayer;
+}//getCurrentPlayer
+
 int engine::manageInputs(int player)
 {
 	//add all the inputs from the input queue that have entered

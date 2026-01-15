@@ -124,6 +124,8 @@ class engine
 		//set who is playing on this device. -1 if we are running
 		//in EMULATE mode
 		void setCurrentPlayer(int player);
+		//get wo is playing on this device
+		int getCurrentPlayer();
 		//move inputs between buffers depending on the current frame
 		int manageInputs(int player);
 		//initialize the first frame

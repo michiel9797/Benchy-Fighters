@@ -26,15 +26,18 @@ class networkLayer
 		//destructor
 		virtual ~networkLayer() = default;
 		//a function that is called at the start of every network device loop.
-		//if false is returned, the server will be shut down.
+		//if false is returned, the device will be shut down.
 		//does not need to be overridden
 		virtual bool startOfLoop(double simTime){return true;};
 		//a function that is called at the end of every network device loop.
-		//if false is returned, the server will be shut down.
+		//if false is returned, the device will be shut down.
 		//does not need to be overriden
 		virtual bool endOfLoop(){return true;};
 };//networkingLayer
 
+//note: the game will automatically shut down a client once a player reaches 0
+//health or 99 seconds worth of frames have been generated, but the client can
+//also be shut down by use of the startOfLoop or endOfLoop functions.
 class clientLayer: public virtual networkLayer
 {
 	public:
@@ -44,17 +47,17 @@ class clientLayer: public virtual networkLayer
 		virtual ~clientLayer() = default;
 		//send a message in the shape of a json object, can be used to express
 		//other messages too
-		virtual void sendMessage(json message) = 0;
+		virtual void sendMessage(json messageData) = 0;
 		//receive messages that have been sent to you. Returns true when a message
 		//has been successfully loaded into the given variable, returns false otherwise
-		virtual bool receiveMessage(json &message) = 0;
+		virtual bool receiveMessage(std::vector<json> &message) = 0;
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
-		virtual bool startConnection() = 0;
+		virtual bool startConnection(char *address) = 0;
 		//break the connection with other devices
 		virtual void endConnection() = 0;
 
-	private:
+	protected:
 		//which client we are
 		int client;
 };
@@ -110,22 +113,29 @@ class yojimboClient: public virtual clientLayer
 {
 	public:
 		//initialize yojibmo
-		yojimboClient(int thisDevice);
+		yojimboClient(int thisDevice, char *clientAddress);
 		//start the connection with the other device, once returned with True 
 		//the device will assume the connection has been established
-		bool startConnection() override;
+		bool startConnection(char *serverAddress) override;
 		//send a message in the shape of a json, can be used to express
 		//other messages too
 		void sendMessage(json message) override;
 		//receive messages that have been sent to you. Returns true when a message
 		//has been successfully loaded into the given variable, returns false otherwise
-		bool receiveMessage(json &message) override;
+		bool receiveMessage(std::vector<json> &message) override;
 		//a function that is called at the start of every network device loop.
 		bool startOfLoop(double simTime) override;
 		//a function that is called at the end of every network device loop.
 		bool endOfLoop() override;
 		//break the connection with other devices
 		void endConnection() override;
+	private:
+		//the client object
+		yojimbo::Client *clientInstance;
+		//adapter object
+		yojimboAdapter adapter;
+		//simulation time, to ensure time stays absolute between contexts
+		double simTime;
 };//yojimboLayer
 
 class yojimboServer: public virtual serverLayer

@@ -138,7 +138,7 @@ void localLoop(engine &gameEngine)
 
 //the main loop for a client in the simulation run
 void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance, 
-				double simTime, int currentPlayer, json currentPlayerInput)
+				double simTime, json currentPlayerInput)
 {
 	//timing logic
 	auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
@@ -233,7 +233,7 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 					{	//if the message isn't empty
 						if(message->data[0]["Pressed"] != "empty")
 						{	//process all message data for the opposite player
-							if(currentPlayer == 1)
+							if(gameEngine.getCurrentPlayer() == 1)
 							{
 								gameEngine.addInput(2, message->data);
 							}else{
@@ -243,7 +243,7 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 					}else{
 						if(message->data["Pressed"] != "empty")
 						{
-							if(currentPlayer == 1)
+							if(gameEngine.getCurrentPlayer() == 1)
 							{
 								gameEngine.addInput(2, message->data);
 							}else{
@@ -271,7 +271,7 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 							if(lastInputReceived[i]["Pressed"] != "empty")
 							{
 								json prediction = setInputAhead(lastInputReceived, sendAhead);
-								if(currentPlayer != 1)
+								if(gameEngine.getCurrentPlayer() == 1)
 								{
 									gameEngine.addInput(2, prediction);
 								}else{
@@ -283,7 +283,7 @@ void clientLoop(engine &gameEngine, yojimbo::Client &clientInstance,
 						if(lastInputReceived["Pressed"] != "empty")
 						{	//create a copy of the last input and set it to this frame
 							json prediction = setInputAhead(lastInputReceived, sendAhead);
-							if(currentPlayer != 1)
+							if(gameEngine.getCurrentPlayer() == 1)
 							{
 								gameEngine.addInput(2, prediction);
 							}else{
@@ -499,7 +499,7 @@ int main(int argc, char * argv[])
 				std::this_thread::sleep_until(next_frame_time);
 			}//while
 
-			clientLoop(gameEngine, clientInstance, simTime, currentPlayer, data);
+			clientLoop(gameEngine, clientInstance, simTime, data);
 
 			clientInstance.Disconnect();
 
