@@ -75,7 +75,9 @@ yojimboClient::yojimboClient(int thisDevice, char *clientAddress)
   : clientLayer(thisDevice),
     clientInstance(),
     adapter(),
-    simTime(0)
+    simTime(0),
+    messageInBuffer(false),
+    messageBuffer()
 {
   InitializeYojimbo();
 
@@ -104,7 +106,6 @@ bool yojimboClient::startConnection(char *address)
 	auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
 	auto next_frame_time = std::chrono::high_resolution_clock::now();
 	double sim_interval = timePerFrame / 1000.0;
-	double simTime = 0.0;
 
 	clientInstance->AdvanceTime(simTime);
 
@@ -136,31 +137,71 @@ void yojimboClient::sendMessage(json messageData)
 	clientInstance->SendMessage(0, message);
 }//sendMessage
 
-bool yojimboClient::receiveMessage(std::vector<json> &message)
+bool yojimboClient::hasMessageToReceive()
 {
-  jsonMessage* newMessage = (jsonMessage*)clientInstance->ReceiveMessage(0);
+  if(messageInBuffer)
+  {
+    return true;
+  }//if
+
+  jsonMessage *newMessage = (jsonMessage*)clientInstance->ReceiveMessage(0);
+
   if(!newMessage)
   {
     return false;
-  }//if
-  if(newMessage->data.is_array())
+  } else {
+    messageBuffer = newMessage->data;
+    messageInBuffer = true;
+  }//else
+
+  return true;
+}//hasMessageToReceive
+
+bool yojimboClient::receiveMessage(std::vector<json> &message)
+{
+  json dataReceived;
+
+  if(messageInBuffer)
+  {
+    dataReceived = messageBuffer;
+    messageInBuffer = false;
+  } else {
+    jsonMessage *newMessage = (jsonMessage*)clientInstance->ReceiveMessage(0);
+    if(!newMessage)
+    {
+      return false;
+    }//if
+    dataReceived = newMessage->data;
+  }//else
+
+  if(dataReceived.is_array())
   {
     std::vector<json> newVector;
-    for(uint64_t i = 0; i <= newMessage->data.size(); i++)
+    for(uint64_t i = 0; i < dataReceived.size(); i++)
     {
-      newVector.push_back(newMessage->data[i]);
+      newVector.push_back(dataReceived[i]);
     }//for
     message = newVector;
   } else {
-    message[0] = newMessage->data;
-    message.resize(1);
+    if(message.size() == 0)
+    {
+      message.push_back(dataReceived);
+    } else {
+      message[0] = dataReceived;
+      message.resize(1);
+    }
   }//else
+
   return true;
 }//receiveMessage
 
-bool yojimboClient::startOfLoop(double simTime)
+bool yojimboClient::startOfLoop(double simInterval)
 {
+  simTime += simInterval;
   clientInstance->AdvanceTime(simTime);
+
+  if (!clientInstance->IsConnected())
+		return false;
 
 	clientInstance->ReceivePackets();
   return true;
@@ -180,7 +221,8 @@ void yojimboClient::endConnection()
 yojimboServer::yojimboServer(char *address)
   : serverInstance(),
     adapter(),
-    numClients(0)
+    numClients(0),
+    simTime(0)
 {
   InitializeYojimbo();
 
@@ -250,8 +292,9 @@ void yojimboServer::exchangeMessages()
   }//while
 }//exchangeMessages
 
-bool yojimboServer::startOfLoop(double simTime)
+bool yojimboServer::startOfLoop(double simInterval)
 {
+  simTime += simInterval;
 	serverInstance->AdvanceTime(simTime);
 	serverInstance->ReceivePackets();
   int newNumClients = serverInstance->GetNumConnectedClients();

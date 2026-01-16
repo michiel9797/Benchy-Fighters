@@ -100,29 +100,17 @@ void engine::printGamestate(gamestate state)
 
 int engine::addInput(int player, json data)
 {
-	if(data.is_array())
+	for(long unsigned int i = 0; i < data.size(); i++)
 	{
-		for(long unsigned int i = 0; i < data.size(); i++)
+		if(data[i]["Pressed"] != nullptr)
 		{
-			if(data[i]["Pressed"] != nullptr)
-			{
-				std::string buttonString = data[i]["Pressed"];
-				char button = buttonString[1];
-				std::string frameString = data[i]["Frame"];
-				int inputFrame = std::stoi(frameString);
-				inputList[player-1].push_back(std::make_pair(button, inputFrame));
-			}//if
-		}//for
-	}else{
-		if(data["Pressed"] != nullptr)
-		{
-			std::string buttonString = data["Pressed"];
+			std::string buttonString = data[i]["Pressed"];
 			char button = buttonString[1];
-			std::string frameString = data["Frame"];
+			std::string frameString = data[i]["Frame"];
 			int inputFrame = std::stoi(frameString);
 			inputList[player-1].push_back(std::make_pair(button, inputFrame));
 		}//if
-	}//else
+	}//for
 	return 0;
 }//initInput
 

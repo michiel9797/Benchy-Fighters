@@ -48,6 +48,8 @@ class clientLayer: public virtual networkLayer
 		//send a message in the shape of a json object, can be used to express
 		//other messages too
 		virtual void sendMessage(json messageData) = 0;
+		//check if there are still messages to receive
+		virtual bool hasMessageToReceive() = 0;
 		//receive messages that have been sent to you. Returns true when a message
 		//has been successfully loaded into the given variable, returns false otherwise
 		virtual bool receiveMessage(std::vector<json> &message) = 0;
@@ -120,6 +122,8 @@ class yojimboClient: public virtual clientLayer
 		//send a message in the shape of a json, can be used to express
 		//other messages too
 		void sendMessage(json message) override;
+		//check if there are still messages to receive
+		bool hasMessageToReceive() override;
 		//receive messages that have been sent to you. Returns true when a message
 		//has been successfully loaded into the given variable, returns false otherwise
 		bool receiveMessage(std::vector<json> &message) override;
@@ -136,6 +140,10 @@ class yojimboClient: public virtual clientLayer
 		yojimboAdapter adapter;
 		//simulation time, to ensure time stays absolute between contexts
 		double simTime;
+		//if there is a message in the buffer
+		bool messageInBuffer;
+		//a message buffer, used when checking if there are still messages
+		json messageBuffer;
 };//yojimboLayer
 
 class yojimboServer: public virtual serverLayer
@@ -163,6 +171,8 @@ class yojimboServer: public virtual serverLayer
 		//how many clients are connected. If this number goes down at
 		//any point, the server will shut down
 		int numClients;
+		//simulation time, to ensure time stays absolute between contexts
+		double simTime;
 };//yojimboServer
 
 #endif
