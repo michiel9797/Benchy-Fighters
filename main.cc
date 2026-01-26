@@ -143,6 +143,8 @@ void clientLoop(engine &gameEngine, clientLayer &client, json currentPlayerInput
 	int resimulate = 0;
 	//if the match has started
 	bool start = false;
+	//if we currently have a non-processed message loaded in
+	bool hasMessage = false;
 	
 	while(!gameEngine.getFinished())
 	{
@@ -156,7 +158,7 @@ void clientLoop(engine &gameEngine, clientLayer &client, json currentPlayerInput
 		{	//while we have messages
 			while(client.receiveMessage(message))	
 			{	//if the message is the start signal
-				if(message[0]["Start"] == "true")
+				if(!message[0]["Start"].is_null() && message[0]["Start"] == "true")
 				{
 					start = true;
 					//set up a stub for predictions if needs be
@@ -176,12 +178,12 @@ void clientLoop(engine &gameEngine, clientLayer &client, json currentPlayerInput
 					std::vector<json> tempInput;
 
 					//for each message we've received, if we would still have to resimulate
-					while(client.hasMessageToReceive() && resimulate > 0)
+					while(resimulate > 0 && client.receiveMessage(message))
 					{
-						client.receiveMessage(message);
 						//if the prediction was wrong
 						if(!compareInputJson(message, lastInputReceived))
 						{
+							hasMessage = true;
 							break;
 						}//if
 						tempInput = message;
@@ -195,7 +197,7 @@ void clientLoop(engine &gameEngine, clientLayer &client, json currentPlayerInput
 					//if we would still have to resimulate but have no messages
 					//to process, postpone resimulation until we have the required
 					//messages
-					if(!client.hasMessageToReceive() && resimulate > 0)
+					if((!hasMessage && !client.hasMessageToReceive()) && resimulate > 0)
 					{
 						resimulate = 0;
 					}//if
@@ -205,9 +207,9 @@ void clientLoop(engine &gameEngine, clientLayer &client, json currentPlayerInput
 				}//if	
 
 				//while we still have messages
-				while(client.receiveMessage(message))
+				while(hasMessage || client.receiveMessage(message))
 				{	//if the message isn't empty
-					if(message[0]["Pressed"] != "empty")
+					if(!message[0]["Pressed"].is_null() && message[0]["Pressed"] != "empty")
 					{	//process all message data for the opposite player
 						if(gameEngine.getCurrentPlayer() == 1)
 						{
@@ -218,6 +220,7 @@ void clientLoop(engine &gameEngine, clientLayer &client, json currentPlayerInput
 					}//if
 					lastInputReceived = message;
 					frameLastInputReceived++;
+					hasMessage = false;
 				}//while
 			}//if
 
