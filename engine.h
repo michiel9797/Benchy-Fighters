@@ -2,13 +2,9 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-//Last edited: 16-04-2025
-
 #ifndef EngineH
 #define EngineH
 
-#include <stack>
-#include <queue>
 #include <deque>
 #include <vector>
 #include <utility>
@@ -93,8 +89,7 @@ struct playerstate
 
 //information needed to define the state the game is in
 struct gamestate
-{
-	//at round start the player from device 1 stands left, from device 2 stands right
+{   //at round start the player from device 1 stands left, from device 2 stands right
 	gamestate();
 	//the state of both players
 	playerstate player[2];
