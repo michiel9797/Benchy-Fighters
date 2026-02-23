@@ -1,0 +1,6 @@
+[submodule "gamenetworkingsockets"]
+	path = gamenetworkingsockets
+	url = https://github.com/ValveSoftware/GameNetworkingSockets
+[submodule "yojimbo"]
+	path = yojimbo
+	url = https://github.com/mas-bandwidth/yojimbo
