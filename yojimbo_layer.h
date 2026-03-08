@@ -1,4 +1,4 @@
-//network_layer.h
+//yojimbo_layer.h
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 

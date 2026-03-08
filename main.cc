@@ -8,6 +8,7 @@
 #include <thread>
 #include "engine.h"
 #include "yojimbo_layer.h"
+#include "GNS_layer.h"
 #include "game_loop.h"
 
 using json = nlohmann::json;
@@ -26,22 +27,34 @@ int main(int argc, char * argv[])
 		std::cout << "Match emulation call:" << std::endl;
 		std::cout << "./BenchyFighters EMULATE [input player 1 json file] [input player 2 json file]" << std::endl;
 		std::cout << "Match simulation call:" << std::endl;
-		std::cout << "./BenchyFighters SIMULATE [input player json file] [player playing on this device, 1 or 2] [IP to use] [server IP]" << std::endl;
+		std::cout << "./BenchyFighters SIMULATE [input player json file] [player playing on this device, 1 or 2] [IP to use] [server IP] [netcode to uses]" << std::endl;
 		std::cout << "Server for simulation call:" << std::endl;
-		std::cout << "./BenchyFighters SERVER [IP to use]" << std::endl;
+		std::cout << "./BenchyFighters SERVER [IP to use] [netcode to use]" << std::endl;
 		return 0;
 	}//if
 
-	if(!((argc == 6 && exec_mode == "SIMULATE") || 
+	if(!((argc == 7 && exec_mode == "SIMULATE") || 
 		(argc == 4 && exec_mode == "EMULATE") || 
-		(argc == 3 && exec_mode == "SERVER")))
+		(argc == 4 && exec_mode == "SERVER")))
 	{
 		std::cerr << "Incorrect program call, call \"BenchyFighters --help\" for instructions" << std::endl;
 		return -1;
-	}//if
+	}//ifs
 
 	if(exec_mode == "SERVER"){
-		yojimboServer server = yojimboServer(argv[2]);
+		serverLayer* server;
+		std::string netcode = argv[3];
+
+		if(netcode == "YOJIMBO")
+		{
+			server = new yojimboServer(argv[2]);
+		}else if(netcode == "GNS")
+		{
+			server = new GNSServer(argv[2]);
+		}else{
+			std::cerr << "Invalid netcode value" << std::endl;
+			return -1;
+		}//else
 
 		std::cout << "SERVER START" << std::endl;
 
@@ -94,13 +107,25 @@ int main(int argc, char * argv[])
 			}//if
 			gameEngine.addInput(currentPlayer, data);
 			gameEngine.setCurrentPlayer(currentPlayer);
-		
-			yojimboClient client = yojimboClient(currentPlayer, argv[4]);
 
-			if(client.startConnection(argv[5]))
+			clientLayer* client;
+			std::string netcode = argv[6];
+
+			if(netcode == "YOJIMBO")
+			{
+				client = new yojimboClient(currentPlayer, argv[4]);
+			}else if(netcode == "GNS")
+			{
+				client = new GNSClient(currentPlayer);
+			}else{
+				std::cerr << "Invalid netcode value" << std::endl;
+				return -1;
+			}//else
+
+			if(client->startConnection(argv[5]))
 				clientLoop(gameEngine, client, data);
 
-			client.endConnection();
+			client->endConnection();
 
 		}else{
 			std::cerr << "Incorrect program call, call \"BenchyFighters --help\" for instructions" << std::endl;

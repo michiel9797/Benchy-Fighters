@@ -33,9 +33,9 @@ void localLoop(engine &gameEngine);
 //the main loop for a client in a multiplayer run
 //prints all generated game states to the terminal
 //does not get used to connect to a server, only runs the game
-void clientLoop(engine &gameEngine, clientLayer &client, json currentPlayerInput);
+void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput);
 
 //the main loop for a server in a multiplayers run
-void serverLoop(serverLayer &server);
+void serverLoop(serverLayer *server);
 
 #endif

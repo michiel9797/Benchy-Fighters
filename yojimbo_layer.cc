@@ -1,4 +1,4 @@
-//network_layer.cc
+//yojimbo_layer.cc
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
@@ -21,12 +21,13 @@ template<typename Stream> bool jsonMessage::Serialize(Stream & stream)
     jsonString = data.dump();                 
  
   //serialize the length
-  uint16_t length = jsonString.size();
-  serialize_int(stream, length, 0, maxMessageBuffer);
+  size_t length = jsonString.size();
 
   //drop if the message is too long
-  if(length > maxMessageBuffer)
-      return false;
+  if (length > maxMessageBuffer)
+    return false;
+
+  serialize_int(stream, length, 0, maxMessageBuffer);
 
   if(Stream::IsWriting)
   {
@@ -84,7 +85,7 @@ bool yojimboClient::startConnection(char *address)
 	clientInstance->AdvanceTime(simTime);
 
 	clientInstance->InsecureConnect(privateKey, client, serverAddress);
-	
+
 	while(!clientInstance->IsConnected())
 	{
 		simTime += sim_interval;
