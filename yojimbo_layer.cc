@@ -46,6 +46,11 @@ template<typename Stream> bool jsonMessage::Serialize(Stream & stream)
 	return true;
 }//serialize
 
+
+///////////////////////////////////////////////////
+// Client code
+///////////////////////////////////////////////////
+
 yojimboClient::yojimboClient(int thisDevice, char *clientAddress)
   : clientLayer(thisDevice),
     clientInstance(),
@@ -148,7 +153,7 @@ bool yojimboClient::receiveMessage(std::vector<json> &message)
   if(dataReceived.is_array())
   {
     std::vector<json> newVector;
-    for(uint64_t i = 0; i < dataReceived.size(); i++)
+    for(size_t i = 0; i < dataReceived.size(); i++)
       newVector.push_back(dataReceived[i]);
 
     message = newVector;
@@ -187,6 +192,10 @@ void yojimboClient::endConnection()
 {
 	clientInstance->Disconnect();
 }//endConnections
+
+///////////////////////////////////////////////////
+// Server code
+///////////////////////////////////////////////////
 
 yojimboServer::yojimboServer(char *address)
   : serverInstance(),

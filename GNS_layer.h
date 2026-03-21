@@ -32,10 +32,19 @@ class GNSClient: public virtual clientLayer
 		bool endOfLoop() override;
 		//break the connection with other devices
 		void endConnection() override;
+		//called when a connections status changes		
+		void onConnectionChange(SteamNetConnectionStatusChangedCallback_t *info);
 	private:
 		//the client object
 		ISteamNetworkingSockets *clientInstance;
 		HSteamNetConnection connection;
+		//if there is a message in the buffer
+		bool messageInBuffer;
+		//a message buffer, used when checking if there are still messages
+		json messageBuffer;
+		//called when a connections status changes
+		static void handleConnectionStatusChange(SteamNetConnectionStatusChangedCallback_t *info);
+		inline static GNSClient *clientCallbackInstance = nullptr;
 };
 
 class GNSServer: public virtual serverLayer
@@ -53,6 +62,8 @@ class GNSServer: public virtual serverLayer
 		bool startOfLoop(double simTime) override;
 		//send packets
 		bool endOfLoop() override;
+		//called when a connection status changes		
+		void onConnectionChange(SteamNetConnectionStatusChangedCallback_t *info);
 	
 	private:
 		//the server object
@@ -64,6 +75,10 @@ class GNSServer: public virtual serverLayer
 
 		//if the game has started
 		bool gameStarted;
+
+		//called when a connections status changes
+		static void handleConnectionStatusChange(SteamNetConnectionStatusChangedCallback_t *info);
+		inline static GNSServer *serverCallbackInstance = nullptr;
 };//serverlayer
 
 #endif

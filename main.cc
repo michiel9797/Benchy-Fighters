@@ -123,7 +123,13 @@ int main(int argc, char * argv[])
 			}//else
 
 			if(client->startConnection(argv[5]))
+			{
 				clientLoop(gameEngine, client, data);
+			}else{
+				std::cerr << "Failed to connect to server" << std::endl;
+				return -1;
+			}//else
+
 
 			client->endConnection();
 

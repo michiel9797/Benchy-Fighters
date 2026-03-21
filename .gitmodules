@@ -4,3 +4,6 @@
 [submodule "yojimbo"]
 	path = yojimbo
 	url = https://github.com/mas-bandwidth/yojimbo
+[submodule "RakNet"]
+	path = RakNet
+	url = https://github.com/miniclip/RakNet.git
