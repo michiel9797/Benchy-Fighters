@@ -2,20 +2,30 @@
 //Made by Michiel van der Bijl
 //Bachelor thesis project 2025 Leiden University
 
-#ifndef GNSLayerH
-#define GNSLayerH
+#ifndef RakNetLayerH
+#define RakNetLayerH
 
-#include "gamenetworkingsockets/include/steam/steamnetworkingsockets.h"
-#include "gamenetworkingsockets/include/steam/isteamnetworkingutils.h"
+
+#include "RakNet/Source/MessageIdentifiers.h"
+#include "RakNet/Source/RakPeerInterface.h"
+#include "RakNet/Source/BitStream.h"
+#include "RakNet/Source/RakNetTypes.h"
 #include "network_layer.h"
 
 using json = nlohmann::json;
 
-class GNSClient: public virtual clientLayer
+enum messages
+{
+	ID_MESSAGE_1=ID_USER_PACKET_ENUM+1
+};
+
+class RakNetClient: public virtual clientLayer
 {
 	public:
-		//initialize GNS
-		GNSClient(int thisDevice);
+		//initialize RakNet
+		RakNetClient(int thisDevice);
+		//destructor
+		~RakNetClient();
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
 		bool startConnection(char *address) override;
@@ -32,26 +42,24 @@ class GNSClient: public virtual clientLayer
 		bool endOfLoop() override;
 		//break the connection with other devices
 		void endConnection() override;
-		//called when a connections status changes		
-		void onConnectionChange(SteamNetConnectionStatusChangedCallback_t *info);
 	private:
 		//the client object
-		ISteamNetworkingSockets *clientInstance;
-		HSteamNetConnection connection;
+		RakNet::RakPeerInterface *clientInstance;
+		//the target GUID
+		RakNet::RakNetGUID targetGUID;
 		//if there is a message in the buffer
 		bool messageInBuffer;
 		//a message buffer, used when checking if there are still messages
 		json messageBuffer;
-		//called when a connections status changes
-		static void handleConnectionStatusChange(SteamNetConnectionStatusChangedCallback_t *info);
-		inline static GNSClient *clientCallbackInstance = nullptr;
 };
 
-class GNSServer: public virtual serverLayer
+class RakNetServer: public virtual serverLayer
 {
 	public:
-		//initialize GNS
-		GNSServer(char *address);
+		//initialize RakNet
+		RakNetServer(char *address);
+		//deconstrutor
+		~RakNetServer();
 		//have the server device attempt to send the start of match signal.
 		//Returns false if the match hasn't been started yet, 
 		//and true if it has been started
@@ -62,23 +70,15 @@ class GNSServer: public virtual serverLayer
 		bool startOfLoop(double simTime) override;
 		//send packets
 		bool endOfLoop() override;
-		//called when a connection status changes		
-		void onConnectionChange(SteamNetConnectionStatusChangedCallback_t *info);
 	
 	private:
 		//the server object
-		ISteamNetworkingSockets *serverInstance;
-		HSteamListenSocket listeningSocket;
+		RakNet::RakPeerInterface *serverInstance;
+		//the target GUIDs
+		RakNet::RakNetGUID targetGUID[2];
 
-		//for storing client connections
-		HSteamNetConnection connections[2];
-
-		//if the game has started
-		bool gameStarted;
-
-		//called when a connections status changes
-		static void handleConnectionStatusChange(SteamNetConnectionStatusChangedCallback_t *info);
-		inline static GNSServer *serverCallbackInstance = nullptr;
+		//if the match has started yet
+		bool matchStarted;
 };//serverlayer
 
 #endif

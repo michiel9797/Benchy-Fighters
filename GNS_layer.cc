@@ -5,8 +5,6 @@
 #include <thread>
 #include "GNS_layer.h"
 
-#include <iostream> //!!!REMOVE!!!
-
 using json = nlohmann::json;
 
 ///////////////////////////////////////////////////

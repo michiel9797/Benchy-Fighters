@@ -9,6 +9,7 @@
 #include "engine.h"
 #include "yojimbo_layer.h"
 #include "GNS_layer.h"
+#include "RakNet_layer.h"
 #include "game_loop.h"
 
 using json = nlohmann::json;
@@ -51,6 +52,9 @@ int main(int argc, char * argv[])
 		}else if(netcode == "GNS")
 		{
 			server = new GNSServer(argv[2]);
+		}else if(netcode == "RAKNET")
+		{
+			server = new RakNetServer(argv[2]);
 		}else{
 			std::cerr << "Invalid netcode value" << std::endl;
 			return -1;
@@ -117,6 +121,9 @@ int main(int argc, char * argv[])
 			}else if(netcode == "GNS")
 			{
 				client = new GNSClient(currentPlayer);
+			}else if(netcode == "RAKNET")
+			{
+				client = new RakNetClient(currentPlayer);
 			}else{
 				std::cerr << "Invalid netcode value" << std::endl;
 				return -1;
