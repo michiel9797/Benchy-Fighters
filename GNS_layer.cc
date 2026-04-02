@@ -8,6 +8,21 @@
 using json = nlohmann::json;
 
 ///////////////////////////////////////////////////
+// Message code
+///////////////////////////////////////////////////
+
+json GNSMessage::getJson() const
+{
+  return message;
+}//getJson
+
+GNSMessage::operator bool() const
+{
+  return hasMessage;
+}//bool
+
+
+///////////////////////////////////////////////////
 // Client code
 ///////////////////////////////////////////////////
 
@@ -75,18 +90,18 @@ bool GNSClient::hasMessageToReceive()
 	messagePointer->Release();
 
 	messageBuffer = json::parse(messageData);
+	if(!messageBuffer.is_array())
+		messageBuffer = json::array({messageBuffer});
     messageInBuffer = true;
 
   	return true;
 }//hasMessageToReceive
 
-bool GNSClient::receiveMessage(std::vector<json> &message)
+bool GNSClient::receiveMessage(json &message)
 {
-	json dataReceived;
-
 	if(messageInBuffer)
 	{
-		dataReceived = messageBuffer;
+		message = messageBuffer;
 		messageInBuffer = false;
 	}else{
 		ISteamNetworkingMessage *messagePointer = nullptr;
@@ -104,26 +119,11 @@ bool GNSClient::receiveMessage(std::vector<json> &message)
 			messagePointer->m_cbSize
 		);
 
-		dataReceived = json::parse(messageData);
+		message = json::parse(messageData);
+		if(!message.is_array())
+			message = json::array({message});
 		messagePointer->Release();
 	}//else
-
- 	if(dataReceived.is_array())
-  	{
-    	std::vector<json> newVector;
-    	for(size_t i = 0; i < dataReceived.size(); i++)
-      		newVector.push_back(dataReceived[i]);
-
-    	message = newVector;
-  	}else{
-    	if(message.size() == 0)
-    	{
-      		message.push_back(dataReceived);
-    	}else{
-      		message[0] = dataReceived;
-      		message.resize(1);
-    	}//else
-  	}//else
 
 	return true;
 }//receiveMessage
@@ -206,8 +206,8 @@ bool GNSServer::startMatch()
 	if(connections[0] != k_HSteamNetConnection_Invalid && 
 	   connections[1] != k_HSteamNetConnection_Invalid)
 	{
-		json messageData = json::object();
-		messageData["Start"] = "true";
+		json messageData = json::array();
+		messageData[0]["Start"] = "true";
 		std::string message = messageData.dump();
 
 		for(int i = 0; i <= 1; i++)

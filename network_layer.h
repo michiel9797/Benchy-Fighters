@@ -16,8 +16,19 @@ using json = nlohmann::json;
 //The amount of frames the game engine should be behind simulation time
 const int networkDelay = 5;
 
-// Max message buffer size
+//Max message buffer size
 const int maxMessageBuffer = 2048;
+
+class networkMessage
+{
+	public:
+		//destructor
+		virtual ~networkMessage() = default;
+		//get the json object inside the message
+		virtual json getJson() const = 0;
+		//check if a message is currently loaded in
+		virtual explicit operator bool() const = 0;
+};//benchyMessage
 
 class networkLayer
 {
@@ -50,7 +61,7 @@ class clientLayer: public virtual networkLayer
 		virtual bool hasMessageToReceive() = 0;
 		//receive messages that have been sent to you. Returns true when a message
 		//has been successfully loaded into the given variable, returns false otherwise
-		virtual bool receiveMessage(std::vector<json> &message) = 0;
+		virtual bool receiveMessage(json &message) = 0;
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
 		virtual bool startConnection(char *address) = 0;

@@ -10,6 +10,20 @@
 using json = nlohmann::json;
 
 ///////////////////////////////////////////////////
+// Message code
+///////////////////////////////////////////////////
+
+json RakNetMessage::getJson() const
+{
+  return message;
+}//getJson
+
+RakNetMessage::operator bool() const
+{
+  return hasMessage;
+}//bool
+
+///////////////////////////////////////////////////
 // Client code
 ///////////////////////////////////////////////////
 
@@ -105,7 +119,10 @@ bool RakNetClient::hasMessageToReceive()
 					bitStream.Read(&jsonString[0], length);
 
 					messageBuffer = json::parse(jsonString);
+					if(!messageBuffer.is_array())
+						messageBuffer = json::array({messageBuffer});
 					messageInBuffer = true;
+
 					return true;
 			}//switch
 		}//for
@@ -113,7 +130,7 @@ bool RakNetClient::hasMessageToReceive()
 	return false;
 }//hasMessageToReceive
 
-bool RakNetClient::receiveMessage(std::vector<json> &message)
+bool RakNetClient::receiveMessage(json &message)
 {
 	json dataReceived = nullptr;
 
@@ -154,23 +171,11 @@ bool RakNetClient::receiveMessage(std::vector<json> &message)
 
 	if(dataReceived.is_null())
 		return false;
+	
+	message = dataReceived;
 
-	if(dataReceived.is_array())
-	{
-		std::vector<json> newVector;
-		for(size_t i = 0; i < dataReceived.size(); i++)
-			newVector.push_back(dataReceived[i]);
-
-		message = newVector;
-	}else{
-		if(message.size() == 0)
-		{
-			message.push_back(dataReceived);
-		}else{
-			message[0] = dataReceived;
-			message.resize(1);
-		}//else
-	}//else
+	if(!message.is_array())
+		message = json::array({message});
 
 	return true;
 }//sendMessage
@@ -226,8 +231,8 @@ bool RakNetServer::startMatch()
 	{
 		RakNet::BitStream bitStream;
 
-		json message;
-		message["Start"] = "true";
+		json message = json::array();
+		message[0]["Start"] = "true";
 
 		std::string jsonString = message.dump();
 	

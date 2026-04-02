@@ -81,6 +81,10 @@ int main(int argc, char * argv[])
 			return -1;
 		}//catch
 
+		//force input data to be an array, saves some headaches later on
+		if(!data.is_array())
+			data = json::array({data});
+
 		//set the gamestate for the first iteration
 		gameEngine.setFirstFrame();
 

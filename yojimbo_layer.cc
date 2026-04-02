@@ -8,7 +8,7 @@
 using json = nlohmann::json;
 
 jsonMessage::jsonMessage()
-  : data(json::object())
+  : data(json::array())
 {
   //no further initialization needed
 }//jsonMessage
@@ -41,11 +41,28 @@ template<typename Stream> bool jsonMessage::Serialize(Stream & stream)
     for (int i = 0; i < length; ++i)
         serialize_bits(stream, readString[i], 8);
 
-    data = json::parse(readString);                             
+    data = json::parse(readString); 
+
+    //ensure the result is an array, easier later down the line
+    if (!data.is_array())
+      data = json::array({data});                         
 	}//else        
 	return true;
 }//serialize
 
+///////////////////////////////////////////////////
+// Message code
+///////////////////////////////////////////////////
+
+json yojimboMessage::getJson() const
+{
+  return message->data;
+}//getJson
+
+yojimboMessage::operator bool() const
+{
+  return message;
+}//bool
 
 ///////////////////////////////////////////////////
 // Client code
@@ -134,37 +151,18 @@ bool yojimboClient::hasMessageToReceive()
   return true;
 }//hasMessageToReceive
 
-bool yojimboClient::receiveMessage(std::vector<json> &message)
+bool yojimboClient::receiveMessage(json &message)
 {
-  json dataReceived;
-
   if(messageInBuffer)
   {
-    dataReceived = messageBuffer;
+    message = messageBuffer;
     messageInBuffer = false;
   }else{
     jsonMessage *newMessage = (jsonMessage*)clientInstance->ReceiveMessage(0);
     if(!newMessage)
       return false;
 
-    dataReceived = newMessage->data;
-  }//else
-
-  if(dataReceived.is_array())
-  {
-    std::vector<json> newVector;
-    for(size_t i = 0; i < dataReceived.size(); i++)
-      newVector.push_back(dataReceived[i]);
-
-    message = newVector;
-  }else{
-    if(message.size() == 0)
-    {
-      message.push_back(dataReceived);
-    }else{
-      message[0] = dataReceived;
-      message.resize(1);
-    }//else
+    message = newMessage->data;
   }//else
 
   return true;
@@ -234,9 +232,9 @@ bool yojimboServer::startMatch()
 	if(numClients == 2)
 	{	//generate and send the start message
 		jsonMessage *message1 = (jsonMessage*)serverInstance->CreateMessage(0, JSON_MESSAGE);
-		message1->data["Start"] = "true";
+		message1->data[0]["Start"] = "true";
 		jsonMessage *message2 = (jsonMessage*)serverInstance->CreateMessage(1, JSON_MESSAGE);
-		message2->data["Start"] = "true";
+		message2->data[0]["Start"] = "true";
 		serverInstance->SendMessage(0, 0, message1);
 		serverInstance->SendMessage(1, 0, message2);
 				

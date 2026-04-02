@@ -11,6 +11,28 @@
 
 using json = nlohmann::json;
 
+///////////////////////////////////////////////////
+// Message definition
+///////////////////////////////////////////////////
+
+class GNSMessage: public virtual networkMessage
+{
+	public:
+		//get the json object inside the message
+		json getJson() const override;
+		//check if a message is currently loaded in
+		explicit operator bool() const override;
+	private:
+		//the message from the package
+		json message;
+		//if we have a message or not
+		bool hasMessage;
+};//GNSMessage
+
+///////////////////////////////////////////////////
+// Client definition
+///////////////////////////////////////////////////
+
 class GNSClient: public virtual clientLayer
 {
 	public:
@@ -25,7 +47,7 @@ class GNSClient: public virtual clientLayer
 		bool hasMessageToReceive() override;
 		//receive messages that have been sent to you. Returns true when a message
 		//has been successfully loaded into the given variable, returns false otherwise
-		bool receiveMessage(std::vector<json> &message) override;
+		bool receiveMessage(json &message) override;
 		//a function that is called at the start of every network device loop.
 		bool startOfLoop(double simTime) override;
 		//a function that is called at the end of every network device loop.
@@ -46,6 +68,10 @@ class GNSClient: public virtual clientLayer
 		static void handleConnectionStatusChange(SteamNetConnectionStatusChangedCallback_t *info);
 		inline static GNSClient *clientCallbackInstance = nullptr;
 };
+
+///////////////////////////////////////////////////
+// Server definition
+///////////////////////////////////////////////////
 
 class GNSServer: public virtual serverLayer
 {

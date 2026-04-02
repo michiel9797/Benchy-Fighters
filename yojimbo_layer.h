@@ -10,7 +10,7 @@
 
 using json = nlohmann::json;
 
-struct jsonMessage : public yojimbo::Message
+struct jsonMessage: public yojimbo::Message
 {	
 	json data;
 	
@@ -41,6 +41,26 @@ class yojimboAdapter: public virtual yojimbo::Adapter
 		}//CreateMessageFactory
 };//yojimboAdapter
 
+///////////////////////////////////////////////////
+// Message definition
+///////////////////////////////////////////////////
+
+class yojimboMessage: public virtual networkMessage
+{
+	public:
+		//get the json object inside the message
+		json getJson() const override;
+		//check if a message is currently loaded in
+		explicit operator bool() const override;
+	private:
+		//the underlaying message
+		jsonMessage* message;
+};//yojimboMessage
+
+///////////////////////////////////////////////////
+// Client definition
+///////////////////////////////////////////////////
+
 class yojimboClient: public virtual clientLayer
 {
 	public:
@@ -56,7 +76,7 @@ class yojimboClient: public virtual clientLayer
 		bool hasMessageToReceive() override;
 		//receive messages that have been sent to you. Returns true when a message
 		//has been successfully loaded into the given variable, returns false otherwise
-		bool receiveMessage(std::vector<json> &message) override;
+		bool receiveMessage(json &message) override;
 		//a function that is called at the start of every network device loop.
 		bool startOfLoop(double simTime) override;
 		//a function that is called at the end of every network device loop.
@@ -75,6 +95,10 @@ class yojimboClient: public virtual clientLayer
 		//a message buffer, used when checking if there are still messages
 		json messageBuffer;
 };//yojimboLayer
+
+///////////////////////////////////////////////////
+// Server definition
+///////////////////////////////////////////////////
 
 class yojimboServer: public virtual serverLayer
 {

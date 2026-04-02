@@ -9,7 +9,7 @@
 using json = nlohmann::json;
 
 //for comparing the inputs in two json
-bool compareInputJson(std::vector<json> data1, std::vector<json> data2)
+bool compareInputJson(json data1, json data2)
 {
 	if(data1.size() != data2.size())
 		return false;
@@ -26,21 +26,14 @@ bool compareInputJson(std::vector<json> data1, std::vector<json> data2)
 //for setting the input times correctly in predictions
 json setInputAhead(json data, int frameIncreaseAmount)
 {
-	if(data.is_array())
+	for(long unsigned int i = 0; i < data.size(); i++)
 	{
-		for(long unsigned int i = 0; i < data.size(); i++)
-		{
-			std::string frameString = data[i]["Frame"];
-			int frame = std::stoi(frameString) + frameIncreaseAmount;
-			frameString = std::to_string(frame);
-			data[i]["Frame"] = frameString;
-		}//for
-	}else{
-		std::string frameString = data["Frame"];
+		std::string frameString = data[i]["Frame"];
 		int frame = std::stoi(frameString) + frameIncreaseAmount;
 		frameString = std::to_string(frame);
-		data["Frame"] = frameString;
-	}//else
+		data[i]["Frame"] = frameString;
+	}//for
+
 	return data;
 }//setInputAhead
 
@@ -52,39 +45,26 @@ json extractInputForFrame(json data, int extractFrame)
 	//keep count of what line of the copy we're working on
 	long unsigned int copyCount = 0;
 
-	if(data.is_array())
+	for(long unsigned int i = 0; i < data.size(); i++)
 	{
-		for(long unsigned int i = 0; i < data.size(); i++)
+		if(data[i]["Pressed"] != nullptr)
 		{
-			if(data[i]["Pressed"] != nullptr)
-			{
-				std::string frameString = data[i]["Frame"];
-				int frame = std::stoi(frameString);
-
-				//if the input is earlier then we're looking for
-				if((frame < extractFrame))
-				{	//skip if earlier
-					continue;
-				}else if(frame > extractFrame)
-				{	//stop if later
-					break;
-				}//else if
-
-				copy[copyCount] = data[i];
-				copyCount++;
-			}//if
-		}//for
-	}else{
-		if(data["Pressed"] != nullptr)
-		{
-			std::string frameString = data["Frame"];
+			std::string frameString = data[i]["Frame"];
 			int frame = std::stoi(frameString);
 
-			//if the input is in the correct frame
-			if(frame == extractFrame)
-				copy[copyCount] = data;
+			//if the input is earlier then we're looking for
+			if((frame < extractFrame))
+			{	//skip if earlier
+				continue;
+			}else if(frame > extractFrame)
+			{	//stop if later
+				break;
+			}//else if
+
+			copy[copyCount] = data[i];
+			copyCount++;
 		}//if
-	}//else
+	}//for
 
 	//if we have no inputs to give
 	if(copy[0]["Pressed"] == nullptr)
@@ -123,7 +103,7 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 	//an amount of frames equal to the network delay
 	int gameFrame = -(networkDelay);
 	//a copy of the last input we've received, used for predictions
-	std::vector<json> lastInputReceived;
+	json lastInputReceived;
 	//the last time we've received an input
 	int frameLastInputReceived = 0;
 	//the amount of frames we need to roll back and resimulate
@@ -138,7 +118,7 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 		if(!client->startOfLoop(simInterval))
 			return;
 
-		std::vector<json> message;
+		json message = json::array();
 
 		//if we haven't had the start signal
 		if(!start)
@@ -162,7 +142,7 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 					resimulate = gameFrame - frameLastInputReceived + 1;
 
 					//create temporary storage for the last message data we received
-					std::vector<json> tempInput;
+					json tempInput;
 
 					//for each message we've received, if we would still have to resimulate
 					while(resimulate > 0 && client->receiveMessage(message))
