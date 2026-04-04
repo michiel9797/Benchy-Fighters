@@ -6,6 +6,8 @@
 #include <thread>
 #include "game_loop.h"
 
+#include <iostream> //!!!REMOVE!!!
+
 using json = nlohmann::json;
 
 //for comparing the inputs in two json
@@ -112,30 +114,34 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 	bool start = false;
 	//if we currently have a non-processed message loaded in
 	bool hasMessage = false;
-	
+
 	while(!gameEngine.getFinished())
 	{
 		if(!client->startOfLoop(simInterval))
 			return;
 
-		json message = json::array();
+		networkMessage* message = client->receiveMessage();
 
 		//if we haven't had the start signal
 		if(!start)
 		{	//while we have messages
-			while(client->receiveMessage(message))	
-			{	//if the message is the start signal
-				if(!message[0]["Start"].is_null() && message[0]["Start"] == "true")
+			while(*message)	
+			{
+				json data = message->getJson();
+				//if the message is the start signal
+				if(!data[0]["Start"].is_null() && data[0]["Start"] == "true")
 				{
 					start = true;
 					//set up a stub for predictions if needs be
-					lastInputReceived = message;
+					lastInputReceived = data;
+					break;
 				}//if
+				message = client->receiveMessage();
 			}//while
 		//if we've had the start signal
 		} else {
 			//if we get a message
-			if(client->hasMessageToReceive())
+			if(*message)
 			{	//if we're receiving messages we should have received earlier
 				if(frameLastInputReceived < gameFrame)
 				{	//set the max amount of frames to resimulate later
@@ -145,26 +151,27 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 					json tempInput;
 
 					//for each message we've received, if we would still have to resimulate
-					while(resimulate > 0 && client->receiveMessage(message))
+					while(resimulate > 0 && *message)
 					{
 						//if the prediction was wrong
-						if(!compareInputJson(message, lastInputReceived))
+						if(!compareInputJson(message->getJson(), lastInputReceived))
 						{
 							hasMessage = true;
 							break;
 						}//if
-						tempInput = message;
+						tempInput = message->getJson();
 						//for every correct prediction in order, reduce the amount of frames
 						//that need resimulation and throw away the corresponding message
 						resimulate--;
 						frameLastInputReceived++;
+						message = client->receiveMessage();
 					}//while
 					//set the last input received correct again
 					lastInputReceived = tempInput;
 					//if we would still have to resimulate but have no messages
 					//to process, postpone resimulation until we have the required
 					//messages
-					if((!hasMessage && !client->hasMessageToReceive()) && resimulate > 0)
+					if((!hasMessage && !(*message)) && resimulate > 0)
 						resimulate = 0;
 
 					//roll the game back by up to 8 frames
@@ -173,19 +180,21 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 				}//if	
 
 				//while we still have messages
-				while(hasMessage || client->receiveMessage(message))
-				{	//if the message isn't empty
-					if(!message[0]["Pressed"].is_null() && message[0]["Pressed"] != "empty")
+				while(*message)
+				{	
+					json data = message->getJson();
+					//if the message isn't empty
+					if(!data[0]["Pressed"].is_null() && data[0]["Pressed"] != "empty")
 					{	//process all message data for the opposite player
 						if(gameEngine.getCurrentPlayer() == 1)
 						{
-							gameEngine.addInput(2, message);
+							gameEngine.addInput(2, data);
 						}else
-							gameEngine.addInput(1, message);
+							gameEngine.addInput(1, data);
 					}//if
-					lastInputReceived = message;
+					lastInputReceived = data;
 					frameLastInputReceived++;
-					hasMessage = false;
+					message = client->receiveMessage();
 				}//while
 			}//if
 
@@ -238,6 +247,9 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 		}//else
 
 		client->endOfLoop();
+
+		//clean up whatever message we still have laying around
+		delete message;
 
 		nextFrameTime += frameInterval;
 		std::this_thread::sleep_until(nextFrameTime);

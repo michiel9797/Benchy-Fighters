@@ -26,6 +26,10 @@ enum messages
 class RakNetMessage: public virtual networkMessage
 {
 	public:
+		//base constructor
+		RakNetMessage();
+		//constructor that loads in the jsonMessage
+		RakNetMessage(RakNet::Packet* packet);
 		//get the json object inside the message
 		json getJson() const override;
 		//check if a message is currently loaded in
@@ -53,11 +57,8 @@ class RakNetClient: public virtual clientLayer
 		bool startConnection(char *address) override;
 		//send a message in the shape of a json object
 		void sendMessage(json messageData) override;
-		//check if there are still messages to receive
-		bool hasMessageToReceive() override;
-		//receive messages that have been sent to you. Returns true when a message
-		//has been successfully loaded into the given variable, returns false otherwise
-		bool receiveMessage(json &message) override;
+		//receive messages that have been sent to you
+		networkMessage* receiveMessage() override;
 		//a function that is called at the start of every network device loop.
 		bool startOfLoop(double simTime) override;
 		//a function that is called at the end of every network device loop.
@@ -69,10 +70,6 @@ class RakNetClient: public virtual clientLayer
 		RakNet::RakPeerInterface *clientInstance;
 		//the target GUID
 		RakNet::RakNetGUID targetGUID;
-		//if there is a message in the buffer
-		bool messageInBuffer;
-		//a message buffer, used when checking if there are still messages
-		json messageBuffer;
 };
 
 ///////////////////////////////////////////////////

@@ -13,6 +13,31 @@ using json = nlohmann::json;
 // Message code
 ///////////////////////////////////////////////////
 
+RakNetMessage::RakNetMessage()
+	: message(nullptr),
+	  hasMessage(false)
+{
+	//no further initialization needed
+}//RakNetMessage
+
+RakNetMessage::RakNetMessage(RakNet::Packet* packet)
+	: message(),
+	  hasMessage(true)
+{	//account for data[0] offset when reading
+	RakNet::BitStream bitStream(packet->data + 1, packet->length - 1, false);
+	unsigned short length;
+	bitStream.Read(length);
+
+	std::string jsonString;
+	jsonString.resize(length);
+		
+	bitStream.Read(&jsonString[0], length);
+
+	message = json::parse(jsonString);
+	if(!message.is_array())
+		message = json::array({message});
+}//RakNetMessage
+
 json RakNetMessage::getJson() const
 {
   return message;
@@ -30,9 +55,7 @@ RakNetMessage::operator bool() const
 RakNetClient::RakNetClient(int thisDevice)
 	: clientLayer(thisDevice),
 	  clientInstance(RakNet::RakPeerInterface::GetInstance()),
-	  targetGUID(RakNet::UNASSIGNED_RAKNET_GUID),
-	  messageInBuffer(false),
-	  messageBuffer()
+	  targetGUID(RakNet::UNASSIGNED_RAKNET_GUID)
 {
 	//no further initialization needed
 }//RakNetClient
@@ -49,14 +72,14 @@ bool RakNetClient::startConnection(char *address)
 	clientInstance->Startup(1, &descriptor, 1);
 
 	//split the IP address and the port for the connect function
-	const char split = ':';
-	const char* splitPointer = &split;
+    std::string addrStr(address);
+	size_t pos = addrStr.find(':');
 
-	char* IP = strtok(address, splitPointer);
-	char* portChar = strtok(NULL, splitPointer);
-	int port = atoi(portChar);
+    std::string IP = addrStr.substr(0, pos);
+    std::string portStr = addrStr.substr(pos + 1);
+	int port = stoi(portStr);
 
-	clientInstance->Connect(IP, port, 0, 0);
+	clientInstance->Connect(IP.c_str(), port, 0, 0);
 
 	//wait for confirmation that we've connected to the server
 	auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
@@ -96,89 +119,32 @@ void RakNetClient::sendMessage(json messageData)
 	clientInstance->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, targetGUID, false);
 }//sendMessage
 
-bool RakNetClient::hasMessageToReceive()
+networkMessage* RakNetClient::receiveMessage()
 {
-	if(messageInBuffer)
-	{
-		return true;
-	}else{
-		RakNet::Packet *packet;
-		for(packet = clientInstance->Receive(); packet; 
-		    clientInstance->DeallocatePacket(packet), packet = clientInstance->Receive())
-		{	//using a switch here mostly to keep packet handling uniform
-			switch(packet->data[0])
-			{	//account for data[0] offset when reading
-				case ID_MESSAGE_1:
-					RakNet::BitStream bitStream(packet->data + 1, packet->length - 1, false);
-					unsigned short length;
-					bitStream.Read(length);
+	RakNetMessage* message = new RakNetMessage();
 
-					std::string jsonString;
-					jsonString.resize(length);
-						
-					bitStream.Read(&jsonString[0], length);
-
-					messageBuffer = json::parse(jsonString);
-					if(!messageBuffer.is_array())
-						messageBuffer = json::array({messageBuffer});
-					messageInBuffer = true;
-
-					return true;
-			}//switch
-		}//for
-	}//else
-	return false;
-}//hasMessageToReceive
-
-bool RakNetClient::receiveMessage(json &message)
-{
-	json dataReceived = nullptr;
-
-	if(messageInBuffer)
-	{
-		dataReceived = messageBuffer;
-		messageInBuffer = false;
-	}else{
-		RakNet::Packet *packet;
-		for(packet = clientInstance->Receive(); packet; 
-		    clientInstance->DeallocatePacket(packet), packet = clientInstance->Receive())
-		{	//using a switch here mostly to keep packet handling uniform
-			switch(packet->data[0])
-			{
-				case ID_MESSAGE_1:
-				{	//account for data[0] offset when reading
-					RakNet::BitStream bitStream(packet->data + 1, packet->length - 1, false);
-					unsigned short length;
-					bitStream.Read(length);
-
-					std::string jsonString;
-					jsonString.resize(length);
-						
-					bitStream.Read(&jsonString[0], length);
-
-					dataReceived = json::parse(jsonString);
-					break;
-				}//case
-				default:
-					continue;
-			}//switch
-			//in case we recieve a message, we break out of the switch and
-			//subsequently break out of the loop here. In the default case,
-			//we directly continue and skip this break, staying in the loop
-			break;
-		}//for
-	}//else
-
-	if(dataReceived.is_null())
-		return false;
-	
-	message = dataReceived;
-
-	if(!message.is_array())
-		message = json::array({message});
-
-	return true;
-}//sendMessage
+	RakNet::Packet* packet;
+	for(packet = clientInstance->Receive(); packet; 
+		clientInstance->DeallocatePacket(packet), packet = clientInstance->Receive())
+	{	//using a switch here mostly to keep packet handling uniform
+		switch(packet->data[0])
+		{
+			case ID_MESSAGE_1:
+			{	
+				delete message;
+				message = new RakNetMessage(packet);
+				break;
+			}//case
+			default:
+				continue;
+		}//switch
+		//in case we recieve a message, we break out of the switch and
+		//subsequently break out of the loop here. In the default case,
+		//we directly continue and skip this break, staying in the loop
+		break;
+	}//for
+	return message;
+}//receiveMessage
 
 bool RakNetClient::startOfLoop(double simTime)
 {
@@ -207,12 +173,11 @@ RakNetServer::RakNetServer(char *address)
 	  matchStarted(false)
 {
 	//split the IP address and the port for the connect function
-	const char split = ':';
-	const char* splitPointer = &split;
+    std::string addrStr(address);
+	size_t pos = addrStr.find(':');
 
-	char* IP = strtok(address, splitPointer);
-	char* portChar = strtok(NULL, splitPointer);
-	int port = atoi(portChar);
+    std::string portStr = addrStr.substr(pos + 1);
+	int port = stoi(portStr);
 	
 	RakNet::SocketDescriptor descriptor = RakNet::SocketDescriptor(port, 0);
 	serverInstance->Startup(2, &descriptor, 1);

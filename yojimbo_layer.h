@@ -48,13 +48,19 @@ class yojimboAdapter: public virtual yojimbo::Adapter
 class yojimboMessage: public virtual networkMessage
 {
 	public:
+		//base constructor
+		yojimboMessage();
+		//constructor that loads in the jsonMessage
+		yojimboMessage(jsonMessage* newMessage);
 		//get the json object inside the message
 		json getJson() const override;
 		//check if a message is currently loaded in
 		explicit operator bool() const override;
 	private:
-		//the underlaying message
-		jsonMessage* message;
+		//the message from the package
+		json message;
+		//if we have a message or not
+		bool hasMessage;
 };//yojimboMessage
 
 ///////////////////////////////////////////////////
@@ -72,11 +78,8 @@ class yojimboClient: public virtual clientLayer
 		//send a message in the shape of a json, can be used to express
 		//other messages too
 		void sendMessage(json message) override;
-		//check if there are still messages to receive
-		bool hasMessageToReceive() override;
-		//receive messages that have been sent to you. Returns true when a message
-		//has been successfully loaded into the given variable, returns false otherwise
-		bool receiveMessage(json &message) override;
+		//receive messages that have been sent to you
+		networkMessage* receiveMessage() override;
 		//a function that is called at the start of every network device loop.
 		bool startOfLoop(double simTime) override;
 		//a function that is called at the end of every network device loop.
@@ -90,10 +93,6 @@ class yojimboClient: public virtual clientLayer
 		yojimboAdapter adapter;
 		//simulation time, to ensure time stays absolute between contexts
 		double simTime;
-		//if there is a message in the buffer
-		bool messageInBuffer;
-		//a message buffer, used when checking if there are still messages
-		json messageBuffer;
 };//yojimboLayer
 
 ///////////////////////////////////////////////////

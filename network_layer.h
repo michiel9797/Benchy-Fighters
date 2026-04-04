@@ -57,11 +57,8 @@ class clientLayer: public virtual networkLayer
 		virtual ~clientLayer() = default;
 		//send a message in the shape of a json object
 		virtual void sendMessage(json messageData) = 0;
-		//check if there are still messages to receive
-		virtual bool hasMessageToReceive() = 0;
-		//receive messages that have been sent to you. Returns true when a message
-		//has been successfully loaded into the given variable, returns false otherwise
-		virtual bool receiveMessage(json &message) = 0;
+		//receive messages that have been sent to you.
+		virtual networkMessage* receiveMessage() = 0;
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
 		virtual bool startConnection(char *address) = 0;

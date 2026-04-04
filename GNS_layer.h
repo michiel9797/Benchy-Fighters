@@ -18,7 +18,11 @@ using json = nlohmann::json;
 class GNSMessage: public virtual networkMessage
 {
 	public:
-		//get the json object inside the message
+		//base constructor
+		GNSMessage();
+		//constructor that loads in the message
+		GNSMessage(	ISteamNetworkingMessage* messagePointer, int messageAmount);
+		//return the json
 		json getJson() const override;
 		//check if a message is currently loaded in
 		explicit operator bool() const override;
@@ -43,11 +47,8 @@ class GNSClient: public virtual clientLayer
 		bool startConnection(char *address) override;
 		//send a message in the shape of a json object
 		void sendMessage(json messageData) override;
-		//check if there are still messages to receive
-		bool hasMessageToReceive() override;
-		//receive messages that have been sent to you. Returns true when a message
-		//has been successfully loaded into the given variable, returns false otherwise
-		bool receiveMessage(json &message) override;
+		//receive messages that have been sent to you
+		networkMessage* receiveMessage() override;
 		//a function that is called at the start of every network device loop.
 		bool startOfLoop(double simTime) override;
 		//a function that is called at the end of every network device loop.
@@ -60,10 +61,6 @@ class GNSClient: public virtual clientLayer
 		//the client object
 		ISteamNetworkingSockets *clientInstance;
 		HSteamNetConnection connection;
-		//if there is a message in the buffer
-		bool messageInBuffer;
-		//a message buffer, used when checking if there are still messages
-		json messageBuffer;
 		//called when a connections status changes
 		static void handleConnectionStatusChange(SteamNetConnectionStatusChangedCallback_t *info);
 		inline static GNSClient *clientCallbackInstance = nullptr;

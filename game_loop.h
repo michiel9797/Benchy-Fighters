@@ -16,7 +16,7 @@ using json = nlohmann::json;
 //this means that fields that the engine doesn't use can be added
 //without this check failing, as long as the size of the data files
 //is still equal
-bool compareInputJson(std::vector<json> data1, std::vector<json> data2);
+bool compareInputJson(json data1, json data2);
 
 //sets the frame in which an input occured ahead by a given amount
 //returns a modified json file with the frame of each input set ahead

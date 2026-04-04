@@ -54,14 +54,34 @@ template<typename Stream> bool jsonMessage::Serialize(Stream & stream)
 // Message code
 ///////////////////////////////////////////////////
 
+yojimboMessage::yojimboMessage()
+  : message(nullptr),
+    hasMessage(false)
+{
+  //no further initialization needed
+}//yojimboMessage
+
+yojimboMessage::yojimboMessage(jsonMessage* newMessage)
+  : message(nullptr),
+    hasMessage()
+{
+  if(newMessage)
+  {
+    message = newMessage->data;
+    hasMessage = true;
+  }else{
+    hasMessage = false;
+  }
+}//yojimboMessage
+
 json yojimboMessage::getJson() const
 {
-  return message->data;
+  return message;
 }//getJson
 
 yojimboMessage::operator bool() const
 {
-  return message;
+  return hasMessage;
 }//bool
 
 ///////////////////////////////////////////////////
@@ -72,9 +92,7 @@ yojimboClient::yojimboClient(int thisDevice, char *clientAddress)
   : clientLayer(thisDevice),
     clientInstance(),
     adapter(),
-    simTime(0),
-    messageInBuffer(false),
-    messageBuffer()
+    simTime(0)
 {
   InitializeYojimbo();
 
@@ -128,44 +146,18 @@ void yojimboClient::sendMessage(json messageData)
 { //make a new message
 	jsonMessage *message = (jsonMessage*)clientInstance->CreateMessage(JSON_MESSAGE);
 	//insert the required input data
-	message->data = messageData;	
+	message->data = messageData;
 	//send the message
 	clientInstance->SendMessage(0, message);
 }//sendMessage
 
-bool yojimboClient::hasMessageToReceive()
+networkMessage* yojimboClient::receiveMessage()
 {
-  if(messageInBuffer)
-    return true;
-
-  jsonMessage *newMessage = (jsonMessage*)clientInstance->ReceiveMessage(0);
-
-  if(!newMessage)
-  {
-    return false;
-  }else{
-    messageBuffer = newMessage->data;
-    messageInBuffer = true;
-  }//else
-
-  return true;
-}//hasMessageToReceive
-
-bool yojimboClient::receiveMessage(json &message)
-{
-  if(messageInBuffer)
-  {
-    message = messageBuffer;
-    messageInBuffer = false;
-  }else{
-    jsonMessage *newMessage = (jsonMessage*)clientInstance->ReceiveMessage(0);
-    if(!newMessage)
-      return false;
-
-    message = newMessage->data;
-  }//else
-
-  return true;
+  jsonMessage* temp = (jsonMessage*)clientInstance->ReceiveMessage(0);
+  yojimboMessage* message = new yojimboMessage(temp);
+  if(temp)
+    clientInstance->ReleaseMessage(temp);
+  return message;
 }//receiveMessage
 
 bool yojimboClient::startOfLoop(double simInterval)

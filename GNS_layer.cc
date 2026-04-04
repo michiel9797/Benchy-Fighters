@@ -11,6 +11,34 @@ using json = nlohmann::json;
 // Message code
 ///////////////////////////////////////////////////
 
+GNSMessage::GNSMessage()
+	: message(nullptr),
+	  hasMessage(false)
+{
+	//no further initialization needed
+}//GNSMessage
+
+GNSMessage::GNSMessage(ISteamNetworkingMessage* messagePointer, int messageAmount)
+	: message(),
+	  hasMessage()
+{
+	if(messageAmount == 0)
+	{
+		message = nullptr;
+		hasMessage = false;
+	}else{
+		std::string messageData(
+			(char*)messagePointer->m_pData,
+			messagePointer->m_cbSize
+		);
+
+		message = json::parse(messageData);
+		if(!message.is_array())
+			message = json::array({message});
+		hasMessage = true;
+	}//else
+}//GNSMessage
+
 json GNSMessage::getJson() const
 {
   return message;
@@ -29,9 +57,7 @@ GNSMessage::operator bool() const
 GNSClient::GNSClient(int thisDevice)
 	: clientLayer(thisDevice),
 	  clientInstance(),
-	  connection(k_HSteamNetConnection_Invalid),
-	  messageInBuffer(false),
-	  messageBuffer()
+	  connection(k_HSteamNetConnection_Invalid)
 {
 	SteamDatagramErrMsg errorMessage;
 	GameNetworkingSockets_Init(nullptr, errorMessage);
@@ -67,11 +93,8 @@ void GNSClient::sendMessage(json messageData)
 	);
 }//sendMessage
 
-bool GNSClient::hasMessageToReceive()
+networkMessage* GNSClient::receiveMessage()
 {
-	if(messageInBuffer)
-    	return true;
-
 	ISteamNetworkingMessage *messagePointer = nullptr;
 	int messageAmount = SteamNetworkingSockets()->ReceiveMessagesOnConnection(
 		connection,
@@ -79,53 +102,10 @@ bool GNSClient::hasMessageToReceive()
 		1
 	);
 
-	if(messageAmount <= 0)
-		return false;
-
-	std::string messageData(
-		(char*)messagePointer->m_pData,
-		messagePointer->m_cbSize
-	);
-
-	messagePointer->Release();
-
-	messageBuffer = json::parse(messageData);
-	if(!messageBuffer.is_array())
-		messageBuffer = json::array({messageBuffer});
-    messageInBuffer = true;
-
-  	return true;
-}//hasMessageToReceive
-
-bool GNSClient::receiveMessage(json &message)
-{
-	if(messageInBuffer)
-	{
-		message = messageBuffer;
-		messageInBuffer = false;
-	}else{
-		ISteamNetworkingMessage *messagePointer = nullptr;
-		int messageAmount = SteamNetworkingSockets()->ReceiveMessagesOnConnection(
-			connection,
-			&messagePointer,
-			1
-		);
-
-		if(messageAmount <= 0)
-			return false;
-
-		std::string messageData(
-			(char*)messagePointer->m_pData,
-			messagePointer->m_cbSize
-		);
-
-		message = json::parse(messageData);
-		if(!message.is_array())
-			message = json::array({message});
+	GNSMessage* message = new GNSMessage(messagePointer, messageAmount);
+	if(messageAmount > 0)
 		messagePointer->Release();
-	}//else
-
-	return true;
+	return message;
 }//receiveMessage
 
 bool GNSClient::startOfLoop(double simTime)
