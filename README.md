@@ -4,7 +4,7 @@ The game lacks both a UI and realtime input reading, taking all the inputs for a
 
 For further instructions on how to use this program, run the following command after compilation:
 ```bash
-benchyFighters --help
+./BenchyFighters --help
 ```
 
 You can find a repository with Makefiles to compile this project here:
