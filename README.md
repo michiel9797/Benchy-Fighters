@@ -7,6 +7,9 @@ For further instructions on how to use this program, run the following command a
 ./BenchyFighters --help
 ```
 
+## Building
+To compile Benchy Fighters, all netcodes included in it need to be compiled as well. The yojimbo, gamenetworkingsockets and RakNet directories contain READMEs that contain information about the building process. When all prerequisite netcodes have been built, Benchy Fighters can be compiled.
+
 You can find a repository with Makefiles to compile this project here:
 - https://github.com/michiel9797/Michiels-Makefiles/tree/master
 
