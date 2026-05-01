@@ -29,7 +29,7 @@ class RakNetMessage: public virtual networkMessage
 		//base constructor
 		RakNetMessage();
 		//constructor that loads in the jsonMessage
-		RakNetMessage(RakNet::Packet* packet);
+		RakNetMessage(const RakNet::Packet* packet);
 		//get the json object inside the message
 		json getJson() const override;
 		//check if a message is currently loaded in
@@ -49,18 +49,18 @@ class RakNetClient: public virtual clientLayer
 {
 	public:
 		//initialize RakNet
-		RakNetClient(int thisDevice);
+		RakNetClient(const short thisDevice);
 		//destructor
 		~RakNetClient();
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
-		bool startConnection(char *address) override;
+		bool startConnection(const char *address) override;
 		//send a message in the shape of a json object
 		void sendMessage(json messageData) override;
 		//receive messages that have been sent to you
 		networkMessage* receiveMessage() override;
 		//a function that is called at the start of every network device loop.
-		bool startOfLoop(double simTime) override;
+		bool startOfLoop(const double simTime) override;
 		//a function that is called at the end of every network device loop.
 		bool endOfLoop() override;
 		//break the connection with other devices
@@ -80,7 +80,7 @@ class RakNetServer: public virtual serverLayer
 {
 	public:
 		//initialize RakNet
-		RakNetServer(char *address);
+		RakNetServer(const char *address);
 		//deconstrutor
 		~RakNetServer();
 		//have the server device attempt to send the start of match signal.
@@ -90,7 +90,7 @@ class RakNetServer: public virtual serverLayer
 		//exchange messages between clients
 		void exchangeMessages() override;
 		//update the servers time and receive packets
-		bool startOfLoop(double simTime) override;
+		bool startOfLoop(const double simTime) override;
 		//send packets
 		bool endOfLoop() override;
 	

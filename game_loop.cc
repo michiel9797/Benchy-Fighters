@@ -4,9 +4,8 @@
 
 #include <chrono>
 #include <thread>
+#include <iostream>
 #include "game_loop.h"
-
-#include <iostream> //!!!REMOVE!!!
 
 using json = nlohmann::json;
 
@@ -17,21 +16,19 @@ bool compareInputJson(json data1, json data2)
 		return false;
 
 	for(long unsigned int i = 0; i < data1.size(); i++)
-	{
 		if(data1[i]["Pressed"] != data2[i]["Pressed"])
 			return false;
-	}//for
 
 	return true;
 }//compareInputJson
 
 //for setting the input times correctly in predictions
-json setInputAhead(json data, int frameIncreaseAmount)
+json setInputAhead(json data, const short frameIncreaseAmount)
 {
 	for(long unsigned int i = 0; i < data.size(); i++)
 	{
 		std::string frameString = data[i]["Frame"];
-		int frame = std::stoi(frameString) + frameIncreaseAmount;
+		const int frame = std::stoi(frameString) + frameIncreaseAmount;
 		frameString = std::to_string(frame);
 		data[i]["Frame"] = frameString;
 	}//for
@@ -40,7 +37,7 @@ json setInputAhead(json data, int frameIncreaseAmount)
 }//setInputAhead
 
 //for grabbing the inputs to send over to the other client
-json extractInputForFrame(json data, int extractFrame)
+json extractInputForFrame(json data, const short extractFrame)
 {
 	//make a json object to copy inputs into
 	json copy = json::array();
@@ -51,17 +48,16 @@ json extractInputForFrame(json data, int extractFrame)
 	{
 		if(data[i]["Pressed"] != nullptr)
 		{
-			std::string frameString = data[i]["Frame"];
-			int frame = std::stoi(frameString);
+			const std::string frameString = data[i]["Frame"];
+			const short frame = std::stoi(frameString);
 
 			//if the input is earlier then we're looking for
 			if((frame < extractFrame))
-			{	//skip if earlier
+				//skip if earlier
 				continue;
-			}else if(frame > extractFrame)
-			{	//stop if later
+			else if(frame > extractFrame)
+				//stop if later
 				break;
-			}//else if
 
 			copy[copyCount] = data[i];
 			copyCount++;
@@ -82,15 +78,15 @@ json extractInputForFrame(json data, int extractFrame)
 //the main loop for a local run
 void localLoop(engine &gameEngine)
 {
-	auto frame_interval = std::chrono::milliseconds(int(timePerFrame)); 
-    auto current = std::chrono::high_resolution_clock::now();
+	const auto frameInterval = std::chrono::milliseconds(int(timePerFrame)); 
+    auto nextFrameTime = std::chrono::high_resolution_clock::now();
     while (!gameEngine.getFinished()) {
 		gameEngine.prepStatecache();
 		gameEngine.manageInputs(1);
 		gameEngine.manageInputs(2);
         gameEngine.printGamestate(gameEngine.framegen());
-        current += frame_interval;
-		std::this_thread::sleep_until(current);
+        nextFrameTime += frameInterval;
+		std::this_thread::sleep_until(nextFrameTime);
     }//while
 }//localLoop
 
@@ -98,22 +94,26 @@ void localLoop(engine &gameEngine)
 void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput)
 {
 	//timing logic
-	auto frameInterval = std::chrono::milliseconds(int(timePerFrame));
+	const auto frameInterval = std::chrono::milliseconds(int(timePerFrame));
 	auto nextFrameTime = std::chrono::high_resolution_clock::now();
-	double simInterval = timePerFrame / 1000.0;
+	const double simInterval = timePerFrame / 1000.0;
 	//the frame the game should be in, this is behind the client loop 
 	//an amount of frames equal to the network delay
-	int gameFrame = -(networkDelay);
+	short gameFrame = -(networkDelay);
 	//a copy of the last input we've received, used for predictions
-	json lastInputReceived;
+	json lastInputReceived = json::array();
+	//initialize with an empty value in case the first few inputs
+	//dont come through
+	lastInputReceived[0]["Pressed"] = "empty";
 	//the last time we've received an input
-	int frameLastInputReceived = 0;
+	short frameLastInputReceived = 0;
 	//the amount of frames we need to roll back and resimulate
 	int resimulate = 0;
 	//if the match has started
 	bool start = false;
-	//if we currently have a non-processed message loaded in
-	bool hasMessage = false;
+	
+	bool firstTest = true;
+	std::chrono::duration<long int, std::ratio<1, 1000000000> > baseTest;
 
 	while(!gameEngine.getFinished())
 	{
@@ -132,14 +132,20 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 				if(!data[0]["Start"].is_null() && data[0]["Start"] == "true")
 				{
 					start = true;
-					//set up a stub for predictions if needs be
-					lastInputReceived = data;
 					break;
 				}//if
 				message = client->receiveMessage();
 			}//while
 		//if we've had the start signal
-		} else {
+		}else{
+			//check desyncs to guarantee shutdown
+			resimulate = gameFrame - frameLastInputReceived + 1;
+			if(resimulate > 7)
+			{
+				std::cerr << "Match desynced" << std::endl;
+				return;
+			}//if
+
 			//if we get a message
 			if(*message)
 			{	//if we're receiving messages we should have received earlier
@@ -152,13 +158,10 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 
 					//for each message we've received, if we would still have to resimulate
 					while(resimulate > 0 && *message)
-					{
-						//if the prediction was wrong
+					{	//if the prediction was wrong
 						if(!compareInputJson(message->getJson(), lastInputReceived))
-						{
-							hasMessage = true;
 							break;
-						}//if
+
 						tempInput = message->getJson();
 						//for every correct prediction in order, reduce the amount of frames
 						//that need resimulation and throw away the corresponding message
@@ -171,25 +174,24 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 					//if we would still have to resimulate but have no messages
 					//to process, postpone resimulation until we have the required
 					//messages
-					if((!hasMessage && !(*message)) && resimulate > 0)
+					if(!(*message) && resimulate > 0)
 						resimulate = 0;
 
-					//roll the game back by up to 8 frames
-					resimulate = std::min(resimulate, 8);
+					//roll the game back by up to 7 frames
+					resimulate = std::min(resimulate, 7);
 					gameEngine.rollback(resimulate);
-				}//if	
+				}//if
 
 				//while we still have messages
 				while(*message)
-				{	
+				{
 					json data = message->getJson();
 					//if the message isn't empty
 					if(!data[0]["Pressed"].is_null() && data[0]["Pressed"] != "empty")
 					{	//process all message data for the opposite player
 						if(gameEngine.getCurrentPlayer() == 1)
-						{
 							gameEngine.addInput(2, data);
-						}else
+						else
 							gameEngine.addInput(1, data);
 					}//if
 					lastInputReceived = data;
@@ -200,27 +202,25 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 
 			//if we've waited out the network delay
 			if(gameFrame >= 0)
-			{
-				//if we haven't received the inputs from the opponent we need for this frame
+			{   //if we haven't received the inputs from the opponent we need for this frame
 				if(frameLastInputReceived < gameFrame)
 				{
-					int sendAhead = gameFrame - frameLastInputReceived;
+					const short sendAhead = gameFrame - frameLastInputReceived;
 					for(unsigned long i = 0; i < lastInputReceived.size(); i++)
 					{
 						if(lastInputReceived[i]["Pressed"] != "empty")
 						{
 							json prediction = setInputAhead(lastInputReceived, sendAhead);
 							if(gameEngine.getCurrentPlayer() == 1)
-							{
 								gameEngine.addInput(2, prediction);
-							}else
+							else
 								gameEngine.addInput(1, prediction);
 						}//if
 					}//for
 				}//if
 
 				//resimulate if we need to
-				for(int i = 0; i < resimulate; i++)
+				for(short i = 0; i < resimulate; i++)
 				{
 					gameEngine.prepStatecache();
 					gameEngine.manageInputs(1);
@@ -252,16 +252,29 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 		delete message;
 
 		nextFrameTime += frameInterval;
+
+		auto timer = std::chrono::high_resolution_clock::now();
+
 		std::this_thread::sleep_until(nextFrameTime);
+
+		if(firstTest)
+		{
+			baseTest = std::chrono::high_resolution_clock::now() - timer;
+			firstTest = false;
+		}else{
+			auto difference = std::chrono::high_resolution_clock::now() - timer;
+			if(difference >= 8 * baseTest)
+				std::cerr << "Lost: " << difference << std::endl;
+		}//else
 	}//while
 }//clientLoop
 
 //the main loop for a server in the simulation run
 void serverLoop(serverLayer *server)
 {
-	auto frameInterval = std::chrono::milliseconds(int(timePerFrame));
+	const auto frameInterval = std::chrono::milliseconds(int(timePerFrame));
 	auto nextFrameTime = std::chrono::high_resolution_clock::now();
-	double simInterval = timePerFrame / 1000.0;
+	const double simInterval = timePerFrame / 1000.0;
 	//has the start signal been sent
 	bool start = false;
 
@@ -272,9 +285,8 @@ void serverLoop(serverLayer *server)
 
 		//if the start signal hasn't been sent yet
 		if(!start)
-		{	
 			start = server->startMatch();
-		} else
+		else
 			server->exchangeMessages();
 
 		if(!server->endOfLoop())

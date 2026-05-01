@@ -18,7 +18,7 @@ GNSMessage::GNSMessage()
 	//no further initialization needed
 }//GNSMessage
 
-GNSMessage::GNSMessage(ISteamNetworkingMessage* messagePointer, int messageAmount)
+GNSMessage::GNSMessage(const ISteamNetworkingMessage* messagePointer, const int messageAmount)
 	: message(),
 	  hasMessage()
 {
@@ -27,7 +27,7 @@ GNSMessage::GNSMessage(ISteamNetworkingMessage* messagePointer, int messageAmoun
 		message = nullptr;
 		hasMessage = false;
 	}else{
-		std::string messageData(
+		const std::string messageData(
 			(char*)messagePointer->m_pData,
 			messagePointer->m_cbSize
 		);
@@ -54,10 +54,11 @@ GNSMessage::operator bool() const
 // Client code
 ///////////////////////////////////////////////////
 
-GNSClient::GNSClient(int thisDevice)
+GNSClient::GNSClient(const short thisDevice)
 	: clientLayer(thisDevice),
 	  clientInstance(),
-	  connection(k_HSteamNetConnection_Invalid)
+	  connection(k_HSteamNetConnection_Invalid),
+	  disconnected(false)
 {
 	SteamDatagramErrMsg errorMessage;
 	GameNetworkingSockets_Init(nullptr, errorMessage);
@@ -67,7 +68,7 @@ GNSClient::GNSClient(int thisDevice)
 	clientCallbackInstance = this;
 }//GNSClient
 
-bool GNSClient::startConnection(char *address)
+bool GNSClient::startConnection(const char* address)
 {
 	SteamNetworkingIPAddr serverAddress;
 	serverAddress.Clear();
@@ -75,7 +76,7 @@ bool GNSClient::startConnection(char *address)
 
 	SteamNetworkingConfigValue_t settings;
 	connection = clientInstance->ConnectByIPAddress(serverAddress, 0, &settings);
-	if (connection == k_HSteamNetConnection_Invalid)
+	if(connection == k_HSteamNetConnection_Invalid)
 		return false;
 
 	return true;
@@ -83,7 +84,7 @@ bool GNSClient::startConnection(char *address)
 
 void GNSClient::sendMessage(json messageData)
 {
-	std::string message = messageData.dump();
+	const std::string message = messageData.dump();
 	SteamNetworkingSockets()->SendMessageToConnection(
 		connection,
 		message.data(),
@@ -96,7 +97,7 @@ void GNSClient::sendMessage(json messageData)
 networkMessage* GNSClient::receiveMessage()
 {
 	ISteamNetworkingMessage *messagePointer = nullptr;
-	int messageAmount = SteamNetworkingSockets()->ReceiveMessagesOnConnection(
+	const int messageAmount = SteamNetworkingSockets()->ReceiveMessagesOnConnection(
 		connection,
 		&messagePointer,
 		1
@@ -108,7 +109,7 @@ networkMessage* GNSClient::receiveMessage()
 	return message;
 }//receiveMessage
 
-bool GNSClient::startOfLoop(double simTime)
+bool GNSClient::startOfLoop(const double simTime)
 {
 	clientInstance->RunCallbacks();
 	return true;
@@ -116,8 +117,8 @@ bool GNSClient::startOfLoop(double simTime)
 
 bool GNSClient::endOfLoop()
 {
-	//no actions required
-	return true;
+	//return false if we disconnected
+	return !disconnected;
 }//endOfLoop
 
 void GNSClient::endConnection()
@@ -136,10 +137,10 @@ void GNSClient::endConnection()
 
 void GNSClient::handleConnectionStatusChange(SteamNetConnectionStatusChangedCallback_t *info)
 {
-	clientCallbackInstance->onConnectionChange(info);
+	disconnected = clientCallbackInstance->onConnectionChange(info);
 }//handleConnectionStatusChange
 
-void GNSClient::onConnectionChange(SteamNetConnectionStatusChangedCallback_t *info)
+bool GNSClient::onConnectionChange(SteamNetConnectionStatusChangedCallback_t *info)
 {
 	switch (info->m_info.m_eState)
     {
@@ -147,18 +148,18 @@ void GNSClient::onConnectionChange(SteamNetConnectionStatusChangedCallback_t *in
         case k_ESteamNetworkingConnectionState_ProblemDetectedLocally:
 			SteamNetworkingSockets()->CloseConnection(
 				info->m_hConn, 0, nullptr, false);
-			break;
+			return false;
 		default:
 			//nothing to be done
-			break;
+			return true;
     }//switch
-}//handleConnectionStatusChange
+}//onConnectionChange
 
 ///////////////////////////////////////////////////
 // Server code
 ///////////////////////////////////////////////////
 
-GNSServer::GNSServer(char *address)
+GNSServer::GNSServer(const char *address)
 	: serverInstance(),
 	  listeningSocket(),
 	  connections(k_HSteamNetConnection_Invalid),
@@ -188,9 +189,9 @@ bool GNSServer::startMatch()
 	{
 		json messageData = json::array();
 		messageData[0]["Start"] = "true";
-		std::string message = messageData.dump();
+		const std::string message = messageData.dump();
 
-		for(int i = 0; i <= 1; i++)
+		for(short i = 0; i <= 1; i++)
 		{
 			SteamNetworkingSockets()->SendMessageToConnection(
 				connections[i],
@@ -236,7 +237,7 @@ void GNSServer::exchangeMessages()
     }//while
 }//exchangeMessages
 
-bool GNSServer::startOfLoop(double simTime)
+bool GNSServer::startOfLoop(const double simTime)
 {
 	serverInstance->RunCallbacks();
 	if(gameStarted && (connections[0] == k_HSteamNetConnection_Invalid || 

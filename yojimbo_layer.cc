@@ -3,14 +3,15 @@
 //Bachelor thesis project 2025 Leiden University
 
 #include <thread>
+
 #include "yojimbo_layer.h"
 
 using json = nlohmann::json;
 
 jsonMessage::jsonMessage()
-  : data(json::array())
+	: data(json::array())
 {
-  //no further initialization needed
+	//no further initialization needed
 }//jsonMessage
 
 template<typename Stream> bool jsonMessage::Serialize(Stream & stream)
@@ -18,34 +19,32 @@ template<typename Stream> bool jsonMessage::Serialize(Stream & stream)
 	std::string jsonString;
 
 	if(Stream::IsWriting)                                                                                    
-    jsonString = data.dump();                 
+    	jsonString = data.dump();                 
  
-  //serialize the length
-  size_t length = jsonString.size();
+	//serialize the length
+	size_t length = jsonString.size();
 
-  //drop if the message is too long
-  if (length > maxMessageBuffer)
-    return false;
+	//drop if the message is too long
+	if(length > maxMessageBuffer)
+    	return false;
 
-  serialize_int(stream, length, 0, maxMessageBuffer);
+	serialize_int(stream, length, 0, maxMessageBuffer);
 
-  if(Stream::IsWriting)
-  {
-    for (int i = 0; i < length; ++i)
-        serialize_bits(stream, jsonString[i], 8);
+	if(Stream::IsWriting)
+    	for (size_t i = 0; i < length; ++i)
+        	serialize_bits(stream, jsonString[i], 8);
+	else{ //reading  
+		std::string readString;
+		readString.resize(length);
 
-  }else{ //reading  
-    std::string readString;
-    readString.resize(length);
+		for (size_t i = 0; i < length; ++i)
+        	serialize_bits(stream, readString[i], 8);
 
-    for (int i = 0; i < length; ++i)
-        serialize_bits(stream, readString[i], 8);
+		data = json::parse(readString); 
 
-    data = json::parse(readString); 
-
-    //ensure the result is an array, easier later down the line
-    if (!data.is_array())
-      data = json::array({data});                         
+		//ensure the result is an array, easier later down the line
+		if(!data.is_array())
+			data = json::array({data});                         
 	}//else        
 	return true;
 }//serialize
@@ -55,72 +54,71 @@ template<typename Stream> bool jsonMessage::Serialize(Stream & stream)
 ///////////////////////////////////////////////////
 
 yojimboMessage::yojimboMessage()
-  : message(nullptr),
-    hasMessage(false)
+	: message(nullptr),
+	  hasMessage(false)
 {
   //no further initialization needed
 }//yojimboMessage
 
-yojimboMessage::yojimboMessage(jsonMessage* newMessage)
-  : message(nullptr),
-    hasMessage()
+yojimboMessage::yojimboMessage(const jsonMessage* newMessage)
+	: message(nullptr),
+	  hasMessage()
 {
-  if(newMessage)
-  {
-    message = newMessage->data;
-    hasMessage = true;
-  }else{
-    hasMessage = false;
-  }
+	if(newMessage)
+	{
+		message = newMessage->data;
+		hasMessage = true;
+	}else
+		hasMessage = false;
 }//yojimboMessage
 
 json yojimboMessage::getJson() const
 {
-  return message;
+	return message;
 }//getJson
 
 yojimboMessage::operator bool() const
 {
-  return hasMessage;
+	return hasMessage;
 }//bool
 
 ///////////////////////////////////////////////////
 // Client code
 ///////////////////////////////////////////////////
 
-yojimboClient::yojimboClient(int thisDevice, char *clientAddress)
-  : clientLayer(thisDevice),
-    clientInstance(),
-    adapter(),
-    simTime(0)
+yojimboClient::yojimboClient(const short thisDevice, const char *clientAddress)
+	: clientLayer(thisDevice),
+	  clientInstance(),
+	  adapter(),	
+	  simTime(0)
 {
-  InitializeYojimbo();
+	InitializeYojimbo();
 
 	yojimbo::ClientServerConfig config;
 	config.networkSimulator = false;
 
-  uint8_t privateKey[yojimbo::KeyBytes];
+	uint8_t privateKey[yojimbo::KeyBytes];
 	memset(privateKey, 0, yojimbo::KeyBytes);
 
-  clientInstance = new yojimbo::Client( 
+	clientInstance = new yojimbo::Client( 
 	yojimbo::GetDefaultAllocator(), 
-	  yojimbo::Address(clientAddress), 
-	  config, 
+		yojimbo::Address(clientAddress), 
+		config, 
 		adapter, 
 		ProtocolId
 	);
 }//yojimboClient
 
-bool yojimboClient::startConnection(char *address)
+bool yojimboClient::startConnection(const char *address)
 {
-  yojimbo::Address serverAddress(address);
+	yojimbo::Address serverAddress(address);
 
-  uint8_t privateKey[yojimbo::KeyBytes];
+	uint8_t privateKey[yojimbo::KeyBytes];
 	memset(privateKey, 0, yojimbo::KeyBytes);
 
-	auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
+	const auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
 	auto next_frame_time = std::chrono::high_resolution_clock::now();
-	double sim_interval = timePerFrame / 1000.0;
+	const double sim_interval = timePerFrame / 1000.0;
 
 	clientInstance->AdvanceTime(simTime);
 
@@ -130,7 +128,7 @@ bool yojimboClient::startConnection(char *address)
 	{
 		simTime += sim_interval;
 
-    clientInstance->AdvanceTime(simTime);
+		clientInstance->AdvanceTime(simTime);
 
 		clientInstance->SendPackets();
 		clientInstance->ReceivePackets();
@@ -143,7 +141,7 @@ bool yojimboClient::startConnection(char *address)
 }//startConnection
 
 void yojimboClient::sendMessage(json messageData)
-{ //make a new message
+{	//make a new message
 	jsonMessage *message = (jsonMessage*)clientInstance->CreateMessage(JSON_MESSAGE);
 	//insert the required input data
 	message->data = messageData;
@@ -153,29 +151,29 @@ void yojimboClient::sendMessage(json messageData)
 
 networkMessage* yojimboClient::receiveMessage()
 {
-  jsonMessage* temp = (jsonMessage*)clientInstance->ReceiveMessage(0);
-  yojimboMessage* message = new yojimboMessage(temp);
-  if(temp)
-    clientInstance->ReleaseMessage(temp);
-  return message;
+	jsonMessage* temp = (jsonMessage*)clientInstance->ReceiveMessage(0);
+	yojimboMessage* message = new yojimboMessage(temp);
+	if(temp)
+		clientInstance->ReleaseMessage(temp);
+	return message;
 }//receiveMessage
 
-bool yojimboClient::startOfLoop(double simInterval)
+bool yojimboClient::startOfLoop(const double simInterval)
 {
-  simTime += simInterval;
-  clientInstance->AdvanceTime(simTime);
+	simTime += simInterval;
+	clientInstance->AdvanceTime(simTime);
 
-  if(!clientInstance->IsConnected())
+	if(!clientInstance->IsConnected())
 		return false;
 
 	clientInstance->ReceivePackets();
-  return true;
+	return true;
 }//startOfLoop
 
 bool yojimboClient::endOfLoop()
 {
-  clientInstance->SendPackets();
-  return true;
+	clientInstance->SendPackets();
+	return true;
 }//endOfLoop
 
 void yojimboClient::endConnection()
@@ -187,27 +185,27 @@ void yojimboClient::endConnection()
 // Server code
 ///////////////////////////////////////////////////
 
-yojimboServer::yojimboServer(char *address)
-  : serverInstance(),
-    adapter(),
-    numClients(0),
-    simTime(0)
+yojimboServer::yojimboServer(const char *address)
+	: serverInstance(),
+	  adapter(),
+	  numClients(0),
+      simTime(0)
 {
-  InitializeYojimbo();
+	InitializeYojimbo();
 
 	yojimbo::ClientServerConfig config;
 	config.networkSimulator = false;
 
-  uint8_t privateKey[yojimbo::KeyBytes];
-  memset( privateKey, 0, yojimbo::KeyBytes );
+	uint8_t privateKey[yojimbo::KeyBytes];
+	memset( privateKey, 0, yojimbo::KeyBytes );
 
-  serverInstance = new yojimbo::Server(
-	  yojimbo::GetDefaultAllocator(),
-	  privateKey,
-	  yojimbo::Address(address),
-	  config,
-	  adapter,
-	  ProtocolId
+	serverInstance = new yojimbo::Server(
+		yojimbo::GetDefaultAllocator(),
+		privateKey,
+		yojimbo::Address(address),
+		config,
+		adapter,
+		ProtocolId
 	);
 
 	serverInstance->Start(2);
@@ -215,12 +213,12 @@ yojimboServer::yojimboServer(char *address)
 
 yojimboServer::~yojimboServer()
 {
-  serverInstance->Stop();
-  delete serverInstance;
+	serverInstance->Stop();
+	delete serverInstance;
 }//~yojimboServer
 
 bool yojimboServer::startMatch()
-{ //if two clients are connected
+{ 	//if two clients are connected
 	if(numClients == 2)
 	{	//generate and send the start message
 		jsonMessage *message1 = (jsonMessage*)serverInstance->CreateMessage(0, JSON_MESSAGE);
@@ -230,51 +228,51 @@ bool yojimboServer::startMatch()
 		serverInstance->SendMessage(0, 0, message1);
 		serverInstance->SendMessage(1, 0, message2);
 				
-    return true;
+    	return true;
 	}//if
   return false;
 }//startMatch
 
 void yojimboServer::exchangeMessages()
 {
-  jsonMessage *message = (jsonMessage*)serverInstance->ReceiveMessage(0, 0);
-  jsonMessage *copy;
-  while(message)
-  {
-    copy = (jsonMessage*)serverInstance->CreateMessage(1, JSON_MESSAGE);
-    copy->data = message->data;
-    serverInstance->ReleaseMessage(0, message);
+	jsonMessage *message = (jsonMessage*)serverInstance->ReceiveMessage(0, 0);
+	jsonMessage *copy;
+	while(message)
+	{
+		copy = (jsonMessage*)serverInstance->CreateMessage(1, JSON_MESSAGE);
+		copy->data = message->data;
+		serverInstance->ReleaseMessage(0, message);
 
-    serverInstance->SendMessage(1, 0, copy);
-    message = (jsonMessage*)serverInstance->ReceiveMessage(0, 0);
-  }//while
-  message = (jsonMessage*)serverInstance->ReceiveMessage(1, 0);
-  while(message)
-  {
-    copy = (jsonMessage*)serverInstance->CreateMessage(0, JSON_MESSAGE);
-    copy->data = message->data;
-    serverInstance->ReleaseMessage(1, message);
+		serverInstance->SendMessage(1, 0, copy);
+		message = (jsonMessage*)serverInstance->ReceiveMessage(0, 0);
+  	}//while
+	message = (jsonMessage*)serverInstance->ReceiveMessage(1, 0);
+	while(message)
+	{
+		copy = (jsonMessage*)serverInstance->CreateMessage(0, JSON_MESSAGE);
+		copy->data = message->data;
+		serverInstance->ReleaseMessage(1, message);
 
-    serverInstance->SendMessage(0, 0, copy);
-    message = (jsonMessage*)serverInstance->ReceiveMessage(1, 0);
-  }//while
+		serverInstance->SendMessage(0, 0, copy);
+		message = (jsonMessage*)serverInstance->ReceiveMessage(1, 0);
+	}//while
 }//exchangeMessages
 
-bool yojimboServer::startOfLoop(double simInterval)
+bool yojimboServer::startOfLoop(const double simInterval)
 {
-  simTime += simInterval;
+	simTime += simInterval;
 	serverInstance->AdvanceTime(simTime);
 	serverInstance->ReceivePackets();
-  int newNumClients = serverInstance->GetNumConnectedClients();
-  if(newNumClients < numClients)
+	int newNumClients = serverInstance->GetNumConnectedClients();
+	if(newNumClients < numClients)
 		return false;
 
-  numClients = newNumClients;
-  return true;
+	numClients = newNumClients;
+	return true;
 }//startOfLoop
 
 bool yojimboServer::endOfLoop()
 {
-  serverInstance->SendPackets();
-  return true;
+	serverInstance->SendPackets();
+	return true;
 }//endOfLoop

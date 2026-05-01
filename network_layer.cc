@@ -7,7 +7,7 @@
 
 using json = nlohmann::json;
 
-clientLayer::clientLayer(int thisDevice)
+clientLayer::clientLayer(const short thisDevice)
   : client(thisDevice)
 {
   //no further initialization needed

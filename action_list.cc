@@ -116,7 +116,7 @@ const actions actionList[] =
 	}
 };//actionList
 
-const std::map<std::array<int, 2>, actions> buttonMapping =
+const std::map<std::array<short, 2>, actions> buttonMapping =
 {
 	//idle
 	{{-1, -1}, actionList[0]},

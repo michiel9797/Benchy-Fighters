@@ -20,11 +20,11 @@ bool compareInputJson(json data1, json data2);
 
 //sets the frame in which an input occured ahead by a given amount
 //returns a modified json file with the frame of each input set ahead
-json setInputAhead(json data, int frameIncreaseAmount);
+json setInputAhead(json data, const short frameIncreaseAmount);
 
 //extracts all the inputs for the specified frame and returns them
 //returns a json file with all the messages from the specified frame
-json extractInputForFrame(json data, int extractFrame);
+json extractInputForFrame(json data, const short extractFrame);
 
 //the main loop for a local run
 //prints all generated game states to the terminal

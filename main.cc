@@ -6,6 +6,7 @@
 #include <fstream>
 #include <chrono>
 #include <thread>
+
 #include "engine.h"
 #include "yojimbo_layer.h"
 #include "GNS_layer.h"
@@ -31,6 +32,7 @@ int main(int argc, char * argv[])
 		std::cout << "./BenchyFighters SIMULATE [input player json file] [player playing on this device, 1 or 2] [IP to use] [server IP] [netcode to uses]" << std::endl;
 		std::cout << "Server for simulation call:" << std::endl;
 		std::cout << "./BenchyFighters SERVER [IP to use] [netcode to use]" << std::endl;
+		std::cout << "Current netcode options: YOJIMBO/GNS/RAKNET" << std::endl;
 		return 0;
 	}//if
 
@@ -44,18 +46,15 @@ int main(int argc, char * argv[])
 
 	if(exec_mode == "SERVER"){
 		serverLayer* server;
-		std::string netcode = argv[3];
+		const std::string netcode = argv[3];
 
 		if(netcode == "YOJIMBO")
-		{
 			server = new yojimboServer(argv[2]);
-		}else if(netcode == "GNS")
-		{
+		else if(netcode == "GNS")
 			server = new GNSServer(argv[2]);
-		}else if(netcode == "RAKNET")
-		{
+		else if(netcode == "RAKNET")
 			server = new RakNetServer(argv[2]);
-		}else{
+		else{
 			std::cerr << "Invalid netcode value" << std::endl;
 			return -1;
 		}//else
@@ -107,7 +106,7 @@ int main(int argc, char * argv[])
 			std::cout << "EMULATE START" << std::endl;
 			localLoop(gameEngine);
 		}else if(exec_mode == "SIMULATE"){
-			int currentPlayer = std::stoi(argv[3]);
+			short currentPlayer = static_cast<short>(std::stoi(argv[3]));
 			if(currentPlayer >= 3)
 			{
 				std::cerr << "ERROR: The player value exceeds the acceptable limit" << std::endl;
@@ -117,26 +116,22 @@ int main(int argc, char * argv[])
 			gameEngine.setCurrentPlayer(currentPlayer);
 
 			clientLayer* client;
-			std::string netcode = argv[6];
+			const std::string netcode = argv[6];
 
 			if(netcode == "YOJIMBO")
-			{
 				client = new yojimboClient(currentPlayer, argv[4]);
-			}else if(netcode == "GNS")
-			{
+			else if(netcode == "GNS")
 				client = new GNSClient(currentPlayer);
-			}else if(netcode == "RAKNET")
-			{
+			else if(netcode == "RAKNET")
 				client = new RakNetClient(currentPlayer);
-			}else{
+			else{
 				std::cerr << "Invalid netcode value" << std::endl;
 				return -1;
 			}//else
 
 			if(client->startConnection(argv[5]))
-			{
 				clientLoop(gameEngine, client, data);
-			}else{
+			else{
 				std::cerr << "Failed to connect to server" << std::endl;
 				return -1;
 			}//else

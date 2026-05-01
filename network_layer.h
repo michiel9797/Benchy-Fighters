@@ -6,6 +6,7 @@
 #define NetworkLayerH
 
 #include <vector>
+
 #include "nlohmann-json/json.hpp"
 #include "engine.h"
 
@@ -14,10 +15,10 @@ const uint64_t ProtocolId = 0x0123456789ABCDEFULL;
 using json = nlohmann::json;
 
 //The amount of frames the game engine should be behind simulation time
-const int networkDelay = 5;
+const short networkDelay = 5;
 
 //Max message buffer size
-const int maxMessageBuffer = 2048;
+const short maxMessageBuffer = 2048;
 
 class networkMessage
 {
@@ -38,7 +39,7 @@ class networkLayer
 		//a function that is called at the start of every network device loop.
 		//if false is returned, the device will be shut down.
 		//does not need to be overridden
-		virtual bool startOfLoop(double simTime){return true;};
+		virtual bool startOfLoop(const double simTime){return true;};
 		//a function that is called at the end of every network device loop.
 		//if false is returned, the device will be shut down.
 		//does not need to be overriden
@@ -52,7 +53,7 @@ class clientLayer: public virtual networkLayer
 {
 	public:
 		//initialize the device value to tell the client layer which device it is
-		clientLayer(int thisDevice);
+		clientLayer(const short thisDevice);
 		//destructor
 		virtual ~clientLayer() = default;
 		//send a message in the shape of a json object
@@ -61,7 +62,7 @@ class clientLayer: public virtual networkLayer
 		virtual networkMessage* receiveMessage() = 0;
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
-		virtual bool startConnection(char *address) = 0;
+		virtual bool startConnection(const char* address) = 0;
 		//break the connection with other devices
 		virtual void endConnection() = 0;
 

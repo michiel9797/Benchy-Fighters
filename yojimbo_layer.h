@@ -51,7 +51,7 @@ class yojimboMessage: public virtual networkMessage
 		//base constructor
 		yojimboMessage();
 		//constructor that loads in the jsonMessage
-		yojimboMessage(jsonMessage* newMessage);
+		yojimboMessage(const jsonMessage* newMessage);
 		//get the json object inside the message
 		json getJson() const override;
 		//check if a message is currently loaded in
@@ -71,17 +71,17 @@ class yojimboClient: public virtual clientLayer
 {
 	public:
 		//initialize yojibmo
-		yojimboClient(int thisDevice, char *clientAddress);
+		yojimboClient(const short thisDevice, const char *clientAddress);
 		//start the connection with the other device, once returned with True 
 		//the device will assume the connection has been established
-		bool startConnection(char *serverAddress) override;
+		bool startConnection(const char *serverAddress) override;
 		//send a message in the shape of a json, can be used to express
 		//other messages too
 		void sendMessage(json message) override;
 		//receive messages that have been sent to you
 		networkMessage* receiveMessage() override;
 		//a function that is called at the start of every network device loop.
-		bool startOfLoop(double simTime) override;
+		bool startOfLoop(const double simTime) override;
 		//a function that is called at the end of every network device loop.
 		bool endOfLoop() override;
 		//break the connection with other devices
@@ -103,7 +103,7 @@ class yojimboServer: public virtual serverLayer
 {
 	public:
 		//initialize yojimbo
-		yojimboServer(char *address);
+		yojimboServer(const char *address);
 		//destructor
 		~yojimboServer();
 		//have the server device attempt to send the start of match signal.
@@ -113,7 +113,7 @@ class yojimboServer: public virtual serverLayer
 		//exchange messages between clients
 		void exchangeMessages() override;
 		//update the servers time and receive packets
-		bool startOfLoop(double simTime) override;
+		bool startOfLoop(const double simTime) override;
 		//send packets
 		bool endOfLoop() override;
 	private:
@@ -123,7 +123,7 @@ class yojimboServer: public virtual serverLayer
 		yojimboAdapter adapter;
 		//how many clients are connected. If this number goes down at
 		//any point, the server will shut down
-		int numClients;
+		short numClients;
 		//simulation time, to ensure time stays absolute between contexts
 		double simTime;
 };//yojimboServer

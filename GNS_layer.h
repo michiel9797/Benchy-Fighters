@@ -21,7 +21,7 @@ class GNSMessage: public virtual networkMessage
 		//base constructor
 		GNSMessage();
 		//constructor that loads in the message
-		GNSMessage(	ISteamNetworkingMessage* messagePointer, int messageAmount);
+		GNSMessage(const ISteamNetworkingMessage* messagePointer, const int messageAmount);
 		//return the json
 		json getJson() const override;
 		//check if a message is currently loaded in
@@ -41,29 +41,31 @@ class GNSClient: public virtual clientLayer
 {
 	public:
 		//initialize GNS
-		GNSClient(int thisDevice);
+		GNSClient(const short thisDevice);
 		//start the connection with the other device, once finished the device
 		//will assume the connection has been established
-		bool startConnection(char *address) override;
+		bool startConnection(const char* address) override;
 		//send a message in the shape of a json object
 		void sendMessage(json messageData) override;
 		//receive messages that have been sent to you
 		networkMessage* receiveMessage() override;
 		//a function that is called at the start of every network device loop.
-		bool startOfLoop(double simTime) override;
+		bool startOfLoop(const double simTime) override;
 		//a function that is called at the end of every network device loop.
 		bool endOfLoop() override;
 		//break the connection with other devices
 		void endConnection() override;
 		//called when a connections status changes		
-		void onConnectionChange(SteamNetConnectionStatusChangedCallback_t *info);
+		bool onConnectionChange(SteamNetConnectionStatusChangedCallback_t *info);
 	private:
 		//the client object
 		ISteamNetworkingSockets *clientInstance;
 		HSteamNetConnection connection;
 		//called when a connections status changes
-		static void handleConnectionStatusChange(SteamNetConnectionStatusChangedCallback_t *info);
+		void handleConnectionStatusChange(SteamNetConnectionStatusChangedCallback_t *info);
 		inline static GNSClient *clientCallbackInstance = nullptr;
+		//if the instance has disconnected
+		bool disconnected;
 };
 
 ///////////////////////////////////////////////////
@@ -74,7 +76,7 @@ class GNSServer: public virtual serverLayer
 {
 	public:
 		//initialize GNS
-		GNSServer(char *address);
+		GNSServer(const char *address);
 		//have the server device attempt to send the start of match signal.
 		//Returns false if the match hasn't been started yet, 
 		//and true if it has been started
@@ -82,7 +84,7 @@ class GNSServer: public virtual serverLayer
 		//exchange messages between clients
 		void exchangeMessages() override;
 		//update the servers time and receive packets
-		bool startOfLoop(double simTime) override;
+		bool startOfLoop(const double simTime) override;
 		//send packets
 		bool endOfLoop() override;
 		//called when a connection status changes		

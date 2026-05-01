@@ -3,9 +3,8 @@
 //Bachelor thesis project 2025 Leiden University
 
 #include <thread>
-#include "RakNet_layer.h"
 
-#include <iostream> //!!!REMOVE!!!
+#include "RakNet_layer.h"
 
 using json = nlohmann::json;
 
@@ -20,7 +19,7 @@ RakNetMessage::RakNetMessage()
 	//no further initialization needed
 }//RakNetMessage
 
-RakNetMessage::RakNetMessage(RakNet::Packet* packet)
+RakNetMessage::RakNetMessage(const RakNet::Packet* packet)
 	: message(),
 	  hasMessage(true)
 {	//account for data[0] offset when reading
@@ -52,7 +51,7 @@ RakNetMessage::operator bool() const
 // Client code
 ///////////////////////////////////////////////////
 
-RakNetClient::RakNetClient(int thisDevice)
+RakNetClient::RakNetClient(const short thisDevice)
 	: clientLayer(thisDevice),
 	  clientInstance(RakNet::RakPeerInterface::GetInstance()),
 	  targetGUID(RakNet::UNASSIGNED_RAKNET_GUID)
@@ -65,24 +64,24 @@ RakNetClient::~RakNetClient()
 	RakNet::RakPeerInterface::DestroyInstance(clientInstance);
 }//~RakNetClient
 
-bool RakNetClient::startConnection(char *address)
+bool RakNetClient::startConnection(const char *address)
 {
 	RakNet::SocketDescriptor descriptor = RakNet::SocketDescriptor();
 
 	clientInstance->Startup(1, &descriptor, 1);
 
 	//split the IP address and the port for the connect function
-    std::string addrStr(address);
-	size_t pos = addrStr.find(':');
+    const std::string addrStr(address);
+	const size_t pos = addrStr.find(':');
 
-    std::string IP = addrStr.substr(0, pos);
-    std::string portStr = addrStr.substr(pos + 1);
-	int port = stoi(portStr);
+    const std::string IP = addrStr.substr(0, pos);
+    const std::string portStr = addrStr.substr(pos + 1);
+	const int port = stoi(portStr);
 
 	clientInstance->Connect(IP.c_str(), port, 0, 0);
 
 	//wait for confirmation that we've connected to the server
-	auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
+	const auto frame_interval = std::chrono::milliseconds(int(timePerFrame));
 	auto next_frame_time = std::chrono::high_resolution_clock::now();
 
 	while(true)
@@ -108,9 +107,9 @@ bool RakNetClient::startConnection(char *address)
 void RakNetClient::sendMessage(json messageData)
 {
 	RakNet::BitStream bitStream;
-	std::string jsonString = messageData.dump();
+	const std::string jsonString = messageData.dump();
 	
-	uint32_t length = (uint32_t)jsonString.size();
+	const uint32_t length = (uint32_t)jsonString.size();
 
 	bitStream.Write((RakNet::MessageID)ID_MESSAGE_1);
 	bitStream.Write((unsigned short)length);
@@ -146,15 +145,13 @@ networkMessage* RakNetClient::receiveMessage()
 	return message;
 }//receiveMessage
 
-bool RakNetClient::startOfLoop(double simTime)
-{
-	//no actions required
+bool RakNetClient::startOfLoop(const double simTime)
+{   //no actions required
 	return true;
 }//startOfLoop
 
 bool RakNetClient::endOfLoop()
-{
-	//no actions required
+{   //no actions required
 	return true;
 }//endOfLoop
 
@@ -167,17 +164,17 @@ void RakNetClient::endConnection()
 // Server code
 ///////////////////////////////////////////////////
 
-RakNetServer::RakNetServer(char *address)
+RakNetServer::RakNetServer(const char *address)
 	: serverInstance(RakNet::RakPeerInterface::GetInstance()),
 	  targetGUID(RakNet::UNASSIGNED_RAKNET_GUID),
 	  matchStarted(false)
 {
 	//split the IP address and the port for the connect function
-    std::string addrStr(address);
-	size_t pos = addrStr.find(':');
+    const std::string addrStr(address);
+	const size_t pos = addrStr.find(':');
 
-    std::string portStr = addrStr.substr(pos + 1);
-	int port = stoi(portStr);
+    const std::string portStr = addrStr.substr(pos + 1);
+	const int port = stoi(portStr);
 	
 	RakNet::SocketDescriptor descriptor = RakNet::SocketDescriptor(port, 0);
 	serverInstance->Startup(2, &descriptor, 1);
@@ -199,9 +196,9 @@ bool RakNetServer::startMatch()
 		json message = json::array();
 		message[0]["Start"] = "true";
 
-		std::string jsonString = message.dump();
+		const std::string jsonString = message.dump();
 	
-		uint32_t length = (uint32_t)jsonString.size();
+		const uint32_t length = (uint32_t)jsonString.size();
 
 		bitStream.Write((RakNet::MessageID)ID_MESSAGE_1);
 		bitStream.Write((unsigned short)length);
@@ -227,27 +224,23 @@ void RakNetServer::exchangeMessages()
 			case ID_DISCONNECTION_NOTIFICATION:
 			case ID_CONNECTION_LOST:
 				if(packet->guid == targetGUID[0])
-				{
 					targetGUID[0] == RakNet::UNASSIGNED_RAKNET_GUID;
-				}else{
+				else
 					targetGUID[1] == RakNet::UNASSIGNED_RAKNET_GUID;
-				}//else
 				break;
 			case ID_MESSAGE_1:
 				RakNet::BitStream bitStream(packet->data, packet->length, false);
 
 				if(packet->guid == targetGUID[0])
-				{
 					serverInstance->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, targetGUID[1], false);
-				}else{
+				else
 					serverInstance->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, targetGUID[0], false);
-				}//else
 				break;
 		}//switch
 	}//for
 }//exchangeMessages
 
-bool RakNetServer::startOfLoop(double simTime)
+bool RakNetServer::startOfLoop(const double simTime)
 {
 	if(!matchStarted)
 	{
@@ -258,11 +251,9 @@ bool RakNetServer::startOfLoop(double simTime)
 			if(packet->data[0] == ID_NEW_INCOMING_CONNECTION)
 			{
 				if(targetGUID[0] == RakNet::UNASSIGNED_RAKNET_GUID)
-				{
 					targetGUID[0] = packet->guid;
-				}else{
+				else
 					targetGUID[1] = packet->guid;
-				}//else
 			}//if
 		}//for
 	}//if
