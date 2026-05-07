@@ -259,7 +259,7 @@ const bool engine::detectCollision()
 																 1, statecache.front().player[1].mirror,
 																 false);
 	sf::FloatRect secondCollisionBox = secondCollisionBoxSet.front();
-	return firstCollisionBox.intersects(secondCollisionBox);
+	return firstCollisionBox.findIntersection(secondCollisionBox).has_value();
 }//detectCollision
 
 void engine::tickMovement()
@@ -516,9 +516,9 @@ const std::vector<sf::FloatRect> engine::createBox(const actions action, const a
 	{
 		if(!mirror)
 			for(short i = 0; i < boxCount; i++)
-				hitbox.push_back(sf::FloatRect(action.hitbox_origin[i][0] + playerLocation[0], 
-											   action.hitbox_origin[i][1] + playerLocation[1],
-											   action.hitbox_dimensions[i][0], action.hitbox_dimensions[i][1]));
+				hitbox.push_back(sf::FloatRect({action.hitbox_origin[i][0] + playerLocation[0], 
+											   action.hitbox_origin[i][1] + playerLocation[1]},
+											   {action.hitbox_dimensions[i][0], action.hitbox_dimensions[i][1]}));
 		else
 			for(short i = 0; i < boxCount; i++)
 				//to get the mirrored hitbox, we need to mirror on the x axis. To do this,
@@ -527,23 +527,23 @@ const std::vector<sf::FloatRect> engine::createBox(const actions action, const a
 				//point instead of the top right. Then we need to subtract the width of the player
 				//model from their location before adding it, to account for the fact that the
 				//player origin point is at the top left of the player
-				hitbox.push_back(sf::FloatRect((-action.hitbox_origin[i][0] - action.hitbox_dimensions[i][0]) 
+				hitbox.push_back(sf::FloatRect({(-action.hitbox_origin[i][0] - action.hitbox_dimensions[i][0]) 
 											   + (playerLocation[0] + idle.hurtbox_dimensions[0][0]), 
-											   action.hitbox_origin[i][1] + playerLocation[1],
-											   action.hitbox_dimensions[i][0], action.hitbox_dimensions[i][1]));
+											   action.hitbox_origin[i][1] + playerLocation[1]},
+											   {action.hitbox_dimensions[i][0], action.hitbox_dimensions[i][1]}));
 	}else{
 		if(!mirror)
 			for(short i = 0; i < boxCount; i++)
-				hitbox.push_back(sf::FloatRect(action.hurtbox_origin[i][0] + playerLocation[0], 
-											   action.hurtbox_origin[i][1] + playerLocation[1],
-											   action.hurtbox_dimensions[i][0], action.hurtbox_dimensions[i][1]));
+				hitbox.push_back(sf::FloatRect({action.hurtbox_origin[i][0] + playerLocation[0], 
+											   action.hurtbox_origin[i][1] + playerLocation[1]},
+											   {action.hurtbox_dimensions[i][0], action.hurtbox_dimensions[i][1]}));
 		else
 			for(short i = 0; i < boxCount; i++)
 				//same mirroring method as before
-				hitbox.push_back(sf::FloatRect((-action.hurtbox_origin[i][0] - action.hurtbox_dimensions[i][0]) 
+				hitbox.push_back(sf::FloatRect({(-action.hurtbox_origin[i][0] - action.hurtbox_dimensions[i][0]) 
 											   + (playerLocation[0] + idle.hurtbox_dimensions[0][0]), 
-											   action.hurtbox_origin[i][1] + playerLocation[1],
-											   action.hurtbox_dimensions[i][0], action.hurtbox_dimensions[i][1]));
+											   action.hurtbox_origin[i][1] + playerLocation[1]},
+											   {action.hurtbox_dimensions[i][0], action.hurtbox_dimensions[i][1]}));
 	}//else
 	return hitbox;
 }//createBox
@@ -593,7 +593,7 @@ const bool engine::detectHit(short player)
 
 	for(short j = 0; j < hurtboxUsed; j++)
 		for(short i = 0; i < hitboxUsed; i++)
-			if(hitboxes[i].intersects(hurtboxes[j]))
+			if(hitboxes[i].findIntersection(hurtboxes[j]).has_value())
 				return true;
 
 	return false;
