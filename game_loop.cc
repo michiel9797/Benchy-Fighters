@@ -114,7 +114,7 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 	
 	bool firstTest = true;
 	std::chrono::duration<long int, std::ratio<1, 1000000000> > baseTest;
-
+	
 	while(!gameEngine.getFinished())
 	{
 		if(!client->startOfLoop(simInterval))
@@ -139,7 +139,7 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 		//if we've had the start signal
 		}else{
 			//check desyncs to guarantee shutdown
-			resimulate = gameFrame - frameLastInputReceived + 1;
+			resimulate = gameFrame - frameLastInputReceived;
 			if(resimulate > 7)
 			{
 				std::cerr << "Match desynced" << std::endl;
@@ -151,7 +151,7 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 			{	//if we're receiving messages we should have received earlier
 				if(frameLastInputReceived < gameFrame)
 				{	//set the max amount of frames to resimulate later
-					resimulate = gameFrame - frameLastInputReceived + 1;
+					resimulate = gameFrame - frameLastInputReceived;
 
 					//create temporary storage for the last message data we received
 					json tempInput;
@@ -289,9 +289,10 @@ void serverLoop(serverLayer *server)
 		else
 			server->exchangeMessages();
 
-		if(!server->endOfLoop())
-			return;
 
+		if(!server->endOfLoop()){
+			return;         
+                
 		nextFrameTime += frameInterval;
 		std::this_thread::sleep_until(nextFrameTime);
 	}//while
