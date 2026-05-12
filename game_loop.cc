@@ -290,7 +290,7 @@ void serverLoop(serverLayer *server)
 			server->exchangeMessages();
 
 
-		if(!server->endOfLoop()){
+		if(!server->endOfLoop())
 			return;         
                 
 		nextFrameTime += frameInterval;
