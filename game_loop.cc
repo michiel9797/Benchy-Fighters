@@ -145,6 +145,8 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 				std::cerr << "Match desynced" << std::endl;
 				return;
 			}//if
+			//reset the variable to avoid problems later on
+			resimulate = 0;
 
 			//if we get a message
 			if(*message)
@@ -178,7 +180,7 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 						resimulate = 0;
 
 					//roll the game back by up to 7 frames
-					resimulate = std::min(resimulate, 7);
+					resimulate = std::min(resimulate, 7); 
 					gameEngine.rollback(resimulate);
 				}//if
 
