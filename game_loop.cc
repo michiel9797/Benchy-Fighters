@@ -106,7 +106,7 @@ void clientLoop(engine &gameEngine, clientLayer *client, json currentPlayerInput
 	//dont come through
 	lastInputReceived[0]["Pressed"] = "empty";
 	//the last time we've received an input
-	short frameLastInputReceived = 0;
+	short frameLastInputReceived = -1;
 	//the amount of frames we need to roll back and resimulate
 	int resimulate = 0;
 	//if the match has started
