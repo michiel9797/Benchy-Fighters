@@ -7,9 +7,6 @@ For further instructions on how to use this program, run the following command a
 ./BenchyFighters --help
 ```
 
-To generate input files, use the following program:
-- [timestamped keylogger](https://github.com/michiel9797/timestampedKeylogger)
-
 For a thorough explanation on the design of the program, see section 4.1 of the accompanying thesis linked here: 
 - [ButtonCheck: a Framework to Benchmark the Performance of Netcodes for Fighting Games](https://theses.liacs.nl/3881)
 
