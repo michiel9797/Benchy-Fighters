@@ -7,6 +7,9 @@ For further instructions on how to use this program, run the following command a
 ./BenchyFighters --help
 ```
 
+For a thorough explanation on the design of the program, see section 4.1 of the accompanying thesis linked here: 
+- [ButtonCheck: a Framework to Benchmark the Performance of Netcodes for Fighting Games](https://theses.liacs.nl/3881)
+
 ## Building
 To compile Benchy Fighters, all netcodes included in it need to be compiled as well. The yojimbo, gamenetworkingsockets and RakNet directories contain READMEs that contain information about the building process. When all prerequisite netcodes have been built, Benchy Fighters can be compiled.
 
